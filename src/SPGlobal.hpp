@@ -173,6 +173,10 @@ public:
     {
         return m_timerManager;
     }
+    const std::unique_ptr<MenuManager> &getMenuManagerCore() const
+    {
+        return m_menuManager;
+    }
     const auto &getScriptsDirCore()
     {
         return m_SPModScriptsDir;
@@ -204,6 +208,7 @@ private:
     std::unique_ptr<Logger> m_loggingSystem;
     std::unique_ptr<CommandMngr> m_cmdManager;
     std::unique_ptr<TimerMngr> m_timerManager;
+    std::unique_ptr<MenuManager> m_menuManager;
     std::string m_modName;
     SourcePawn::ISourcePawnFactory *m_spFactory;
 

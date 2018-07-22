@@ -47,6 +47,7 @@
 #include <INativeSystem.hpp>
 #include <ICvarSystem.hpp>
 #include <ITimerSystem.hpp>
+#include <IMenuSystem.hpp>
 
 namespace SPMod
 {

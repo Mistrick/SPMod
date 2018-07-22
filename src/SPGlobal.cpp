@@ -27,6 +27,7 @@ SPGlobal::SPGlobal(fs::path &&dllDir) : m_SPModDir(dllDir.parent_path().parent_p
                                         m_loggingSystem(std::make_unique<Logger>()),
                                         m_cmdManager(std::make_unique<CommandMngr>()),
                                         m_timerManager(std::make_unique<TimerMngr>()),
+                                        m_menuManager(std::make_unique<MenuManager>()),
                                         m_modName(GET_GAME_INFO(PLID, GINFO_NAME)),
                                         m_spFactory(nullptr)
 {
@@ -46,6 +47,7 @@ SPGlobal::SPGlobal(fs::path &&dllDir) : m_SPModDir(dllDir.parent_path().parent_p
     m_nativeManager->addNatives(gSPModModuleDef.get(), gMessageNatives);
     m_nativeManager->addNatives(gSPModModuleDef.get(), gCmdsNatives);
     m_nativeManager->addNatives(gSPModModuleDef.get(), gTimerNatives);
+    m_nativeManager->addNatives(gSPModModuleDef.get(), gMenuNatives);
     m_nativeManager->addNatives(gSPModModuleDef.get(), gFloatNatives);
 
     // Sets up listener for debbugging

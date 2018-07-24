@@ -29,5 +29,6 @@ public PluginReturn MenuTest(int client, Command cid)
 
 public int TestHandler(Menu menu, MenuItem item, int player)
 {
+	PrintToServer("menu %d, item %d, player %d", menu, item, player);
 	return 0;
 }

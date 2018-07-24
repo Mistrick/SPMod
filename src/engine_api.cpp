@@ -206,6 +206,16 @@ enginefuncs_t gEngineFunctionsTable =
     nullptr,	    // pfnEngCheckParm()
 };
 
+int	RegUserMsg_Post(const char *pszName, int iSize)
+{
+    if(!strcmp(pszName, "ShowMenu"))
+    {
+        gmsgShowMenu = META_RESULT_ORIG_RET(int);
+    }
+
+    RETURN_META_VALUE(MRES_IGNORED, 0);
+}
+
 enginefuncs_t gEngineFunctionsTablePost =
 {
     nullptr,		// pfnPrecacheModel()
@@ -283,7 +293,7 @@ enginefuncs_t gEngineFunctionsTablePost =
     nullptr,		// pfnPEntityOfEntIndex()
     nullptr,		// pfnFindEntityByVars()
     nullptr,		// pfnGetModelPtr()
-    nullptr,		// pfnRegUserMsg()
+    RegUserMsg_Post,		// pfnRegUserMsg()
     nullptr,		// pfnAnimationAutomove()
     nullptr,		// pfnGetBonePosition()
     nullptr,		// pfnFunctionFromName()

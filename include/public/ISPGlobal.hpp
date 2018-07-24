@@ -106,6 +106,12 @@ namespace SPMod
          * @return              Timer manager.
          */
         virtual ITimerMngr *getTimerManager() const = 0;
+        /**
+         * @brief Return SPMod menu manager.
+         * 
+         * @return              Menu manager.
+         */
+        virtual IMenuManager *getMenuManager() const = 0;
 
         /**
          * @brief Returns current SourcePawn environment.

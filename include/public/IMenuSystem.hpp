@@ -29,7 +29,7 @@ namespace SPMod
 
         virtual void Display(int player,
                             int page,
-                            int time) const = 0;
+                            int time) = 0;
         virtual void Close(...) const = 0;
         virtual void SetTitle(const char *text) = 0;
         virtual void AppendItem(const char *name,

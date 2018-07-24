@@ -124,6 +124,8 @@ extern sp_nativeinfo_t gTimerNatives[];
 extern sp_nativeinfo_t gMenuNatives[];
 extern sp_nativeinfo_t gFloatNatives[];
 
+extern int gmsgShowMenu;
+
 // Server command function (SrvCommand.cpp)
 void SPModInfoCommand();
 void PluginSrvCmd();

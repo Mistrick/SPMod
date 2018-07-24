@@ -17,12 +17,13 @@
 
 #include "spmod.hpp"
 
-int gmsgShowMenu = GET_USER_MSG_ID(PLID, "ShowMenu", nullptr);
+int gmsgShowMenu;
 
 Menu::Menu(size_t id,
            MenuHandler_t handler) : m_id(id),
                                     m_title(""),
                                     m_itemsPerPage(7),
+                                    m_keys(0),
                                     m_handler(handler),
                                     m_pluginHandler(nullptr)
 {}
@@ -30,11 +31,12 @@ Menu::Menu(size_t id,
            SourcePawn::IPluginFunction *handler) : m_id(id),
                                                    m_title(""),
                                                    m_itemsPerPage(7),
+                                                   m_keys(0),
                                                    m_handler(nullptr),
                                                    m_pluginHandler(handler)
 {}
 
-void Menu::Display(int player, int page, int time) const
+void Menu::Display(int player, int page, int time)
 {
     // format and show menu
     int keys = 0;
@@ -46,33 +48,33 @@ void Menu::Display(int player, int page, int time) const
 
     size_t start = page * m_itemsPerPage;
     size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
-    size_t i;
+    size_t i = 0;
 
     for(i = start; i < end; i++)
     {
         // TODO: number format
         // TODO: item callback
         text << i + 1 << ". " << m_items[i].name << "\n";
-        keys |= i;
+        keys |= (1 << i);
     }
 
     text << "\n";
 
-    if(m_items.size() >= end)
+    if(m_items.size() > end)
     {
-        keys |= i;
+        keys |= (1 << i);
         text << ++i << ". " << "Next" << "\n";
     }
 
     if(page)
     {
-        keys |= i;
+        keys |= (1 << i);
         text << ++i << ". " << "Back" << "\n";
     }
     else
         text << "\n";
 
-    keys |= i;
+    keys |= (1 << i);
     text << (++i == 10 ? 0 : i) << ". " << "Exit" << "\n";
 
     char buffer[512];
@@ -88,6 +90,8 @@ void Menu::Display(int player, int page, int time) const
     buffer[sizeof(buffer) - 1] = '\0';
 #endif
 
+    gSPGlobal->getMenuManagerCore()->AttachMenu(player, m_id);
+    m_keys = keys;
     //show
     UTIL_ShowMenu(INDEXENT(player), keys, time, buffer, strlen(buffer));
 }
@@ -166,6 +170,21 @@ void Menu::AddPluginHandler(SourcePawn::IPluginFunction *func)
     m_pluginHandler = func;
 }
 
+void Menu::ExecHandler(int player, int item)
+{
+    if(m_handler)
+    {
+        m_handler(this, item, player);
+    }
+    if(m_pluginHandler)
+    {
+        m_pluginHandler->PushCell(static_cast<cell_t>(m_id));
+        m_pluginHandler->PushCell(static_cast<cell_t>(item));
+        m_pluginHandler->PushCell(static_cast<cell_t>(player));
+        m_pluginHandler->Execute(nullptr);
+    }
+}
+
 size_t Menu::getId() const
 {
     return m_id;
@@ -223,6 +242,28 @@ void MenuManager::clearMenus()
 {
     m_menus.clear();
     m_mid = 0;
+}
+
+void MenuManager::AttachMenu(int player, size_t menuId)
+{
+    m_playerMenu[player] = menuId;
+}
+
+void MenuManager::ClientCommand(edict_t *pEntity)
+{
+    int pressedKey = std::stoi(CMD_ARGV(1), nullptr, 0) - 1;
+    int player = ENTINDEX(pEntity);
+
+    if(m_playerMenu[player] == -1)
+        return;
+    
+     auto pMenu = findMenu(m_playerMenu[player]);
+
+    if(pMenu->GetKeys() & (1 << pressedKey))
+    {
+        m_playerMenu[player] = -1;
+        pMenu->ExecHandler(player, pressedKey);
+    }
 }
 
 // TODO: move to util.cpp or same

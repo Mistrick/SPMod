@@ -48,7 +48,7 @@ public:
 
     ~Menu() {}
 
-    void Display(int player, int page, int time) const;
+    void Display(int player, int page, int time);
     void Close(...) const;
 
     void SetTitle(const char *text) override
@@ -60,6 +60,10 @@ public:
     void SetItemsPerPage(int value);
     int GetItemsPerPage() const;
 
+    int GetKeys() const
+    {
+        return m_keys;
+    }
 
     virtual void AppendItem(const char *name,
                             MenuItemCallback_t callback) override
@@ -85,6 +89,9 @@ public:
     void AddHandler(MenuHandler_t func);
     void AddPluginHandler(SourcePawn::IPluginFunction *func);
 
+
+    void ExecHandler(int player, int item);
+
     size_t getId() const;
 private:
     void addItem(int pos,
@@ -95,6 +102,7 @@ private:
     size_t m_id;
     std::string m_title;
     int m_itemsPerPage;
+    int m_keys;
     
     MenuHandler_t m_handler;
     SourcePawn::IPluginFunction *m_pluginHandler;
@@ -123,7 +131,12 @@ public:
     void destroyMenu(size_t index);
     std::shared_ptr<Menu> findMenu(size_t index) const;
     void clearMenus();
+
+    void AttachMenu(int player, size_t menuId);
+    void ClientCommand(edict_t *pEntity);
 private:
     size_t m_mid = 0;
     std::vector<std::shared_ptr<Menu>> m_menus;
+
+    int m_playerMenu[33];
 };

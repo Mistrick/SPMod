@@ -126,6 +126,16 @@ public:
     }
 
     /**
+     * @brief Return SPMod menu manager.
+     * 
+     * @return              Timer manager.
+     */
+    IMenuManager *getMenuManager() const override
+    {
+        return reinterpret_cast<IMenuManager *>(m_menuManager.get());
+    }
+
+    /**
      * @brief Formats a string according to the SPMod format rules.
      *
      * @param buffer        Destination buffer.

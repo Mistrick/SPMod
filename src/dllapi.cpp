@@ -59,10 +59,14 @@ static void ClientCommand(edict_t *pEntity)
     }
 
     META_RES res = MRES_IGNORED;
+
     const std::unique_ptr<CommandMngr> &cmdMngr = gSPGlobal->getCommandManagerCore();
+
+    std::string strCmd(CMD_ARGV(0));
+
     if (cmdMngr->getCommandsNum(CmdType::Client))
     {
-        std::string strCmd(CMD_ARGV(0));
+        
 
         if (!strCmd.compare("say") || !strCmd.compare("say_team"))
         {
@@ -89,6 +93,11 @@ static void ClientCommand(edict_t *pEntity)
                 }
             }
         }
+    }
+
+    if (!strCmd.compare("menuselect"))
+	{
+        gSPGlobal->getMenuManagerCore()->ClientCommand(pEntity);
     }
 
     RETURN_META(res);

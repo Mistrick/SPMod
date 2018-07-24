@@ -17,10 +17,35 @@
 
 
 
-class IMenu SPMOD_FINAL
+namespace SPMod
 {
+    
 
-};
+    class IMenu SPMOD_FINAL
+    {
+    public:
+        using MenuItemCallback_t = void (*)(IMenu *const menu, size_t item, int player);
+        using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
 
-using MenuItemCallback_t = void (*)(IMenu *const menu, size_t item, int player);
-using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
+        virtual void Display(int player,
+                            int page,
+                            int time) const = 0;
+        virtual void Close(...) const = 0;
+        virtual void SetTitle(const char *text) = 0;
+        virtual void AppendItem(const char *name,
+                                MenuItemCallback_t callback) = 0;
+    protected:
+        virtual ~IMenu() {}
+    };
+
+    class IMenuManager SPMOD_FINAL
+    {
+    public:
+        using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
+        virtual IMenu *registerMenu(MenuHandler_t handler) = 0;
+        virtual IMenu *registerMenu(SourcePawn::IPluginFunction *func) = 0;
+    protected:
+        virtual ~IMenuManager() {}
+    };
+}
+

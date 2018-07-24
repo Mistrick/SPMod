@@ -26,7 +26,7 @@ static cell_t MenuCreate(SourcePawn::IPluginContext *ctx,
     const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
 
     std::shared_ptr<Menu> pMenu;
-    pMenu = menuManager->registerMenu(ctx->GetFunctionById(params[arg_handler]));
+    pMenu = menuManager->registerMenuCore(ctx->GetFunctionById(params[arg_handler]));
 
     if (!pMenu)
         return -1;
@@ -90,7 +90,7 @@ static cell_t MenuAddItem(SourcePawn::IPluginContext *ctx,
     ctx->LocalToString(params[arg_name], &name);
 
     // TODO: implement arg_data, callback
-    pMenu->AppendItem(name, reinterpret_cast<SourcePawn::IPluginFunction *>(nullptr) /* ctx->GetFunctionById(params[arg_callback]) */);
+    pMenu->AppendItemCore(name, reinterpret_cast<SourcePawn::IPluginFunction *>(nullptr) /* ctx->GetFunctionById(params[arg_callback]) */);
 
     return 1;
 }

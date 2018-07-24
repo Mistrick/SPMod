@@ -26,15 +26,16 @@ void UTIL_ShowMenu(edict_t* pEdict, int slots, int time, char *menu, int mlen);
 
 struct MenuItem
 {
-    MenuItem(std::string n,
+    /* MenuItem(std::string n,
              MenuItemCallback_t c,
              SourcePawn::IPluginFunction *f) : name(n),
                                                callback(c),
                                                pluginCallback(f)
-    {}
+    {} */
+    MenuItem(std::string s) : name(s) {}
     std::string name;
-    MenuItemCallback_t callback;
-    SourcePawn::IPluginFunction *pluginCallback;
+    // MenuItemCallback_t callback;
+    // SourcePawn::IPluginFunction *pluginCallback;
 };
 
 class Menu: public IMenu
@@ -50,13 +51,25 @@ public:
     void Display(int player, int page, int time) const;
     void Close(...) const;
 
-    void SetTitle(std::string_view text);
+    void SetTitle(const char *text) override
+    {
+        SetTitleCore(text);
+    }
+    void SetTitleCore(std::string_view text);
+
     void SetItemsPerPage(int value);
     int GetItemsPerPage() const;
 
-    void AppendItem(std::string_view name,
+
+    virtual void AppendItem(const char *name,
+                            MenuItemCallback_t callback) override
+    {
+        AppendItemCore(name, callback);
+    }
+
+    void AppendItemCore(std::string_view name,
                     MenuItemCallback_t callback);
-    void AppendItem(std::string_view name,
+    void AppendItemCore(std::string_view name,
                     SourcePawn::IPluginFunction *pluginCallback);
 
     bool InsertItem(size_t position,
@@ -89,19 +102,28 @@ private:
     std::vector<MenuItem> m_items;
 };
 
-class MenuManager
+class MenuManager : public IMenuManager
 {
 public:
-    MenuManager() {}
-    ~MenuManager() {}
+    MenuManager() = default;
+    ~MenuManager() = default;
 
-    std::shared_ptr<Menu> registerMenu(MenuHandler_t handler);
-    std::shared_ptr<Menu> registerMenu(SourcePawn::IPluginFunction *func);
+    IMenu *registerMenu(MenuHandler_t handler) override
+    {
+        return registerMenuCore(handler).get();
+    }
+    IMenu *registerMenu(SourcePawn::IPluginFunction *func) override
+    {
+        return registerMenuCore(func).get();
+    }
+    
+    std::shared_ptr<Menu> registerMenuCore(MenuHandler_t handler);
+    std::shared_ptr<Menu> registerMenuCore(SourcePawn::IPluginFunction *func);
     
     void destroyMenu(size_t index);
     std::shared_ptr<Menu> findMenu(size_t index) const;
     void clearMenus();
 private:
-    size_t m_mid;
+    size_t m_mid = 0;
     std::vector<std::shared_ptr<Menu>> m_menus;
 };

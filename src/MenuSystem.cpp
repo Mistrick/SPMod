@@ -96,7 +96,7 @@ void Menu::Close(...) const
     // code
 }
 
-void Menu::SetTitle(std::string_view text)
+void Menu::SetTitleCore(std::string_view text)
 {
     m_title = text;
 }
@@ -109,12 +109,12 @@ int Menu::GetItemsPerPage() const
     return m_itemsPerPage;
 }
 
-void Menu::AppendItem(std::string_view name,
+void Menu::AppendItemCore(std::string_view name,
                       MenuItemCallback_t callback)
 {
     addItem(-1, name, callback, nullptr);
 }
-void Menu::AppendItem(std::string_view name,
+void Menu::AppendItemCore(std::string_view name,
                       SourcePawn::IPluginFunction *pluginCallback)
 {
     addItem(-1, name, nullptr, pluginCallback);
@@ -176,7 +176,7 @@ void Menu::addItem(int pos,
                    MenuItemCallback_t callback,
                    SourcePawn::IPluginFunction *pluginCallback)
 {
-    MenuItem item(name.data(), callback, pluginCallback);
+    MenuItem item(name.data()/* , callback, pluginCallback */);
     if(pos == -1)
     {
         m_items.push_back(item);
@@ -187,13 +187,13 @@ void Menu::addItem(int pos,
     }
 }
 
-std::shared_ptr<Menu> MenuManager::registerMenu(MenuHandler_t handler)
+std::shared_ptr<Menu> MenuManager::registerMenuCore(MenuHandler_t handler)
 {
     std::shared_ptr<Menu> menu = std::make_shared<Menu>(m_mid++, handler);
     m_menus.push_back(menu);
     return menu;
 }
-std::shared_ptr<Menu> MenuManager::registerMenu(SourcePawn::IPluginFunction *func)
+std::shared_ptr<Menu> MenuManager::registerMenuCore(SourcePawn::IPluginFunction *func)
 {
     std::shared_ptr<Menu> menu = std::make_shared<Menu>(m_mid++, func);
     m_menus.push_back(menu);

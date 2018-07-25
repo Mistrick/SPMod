@@ -19,28 +19,31 @@
 
 namespace SPMod
 {
-    
     enum
     {
         MENU_EXIT = -3,
         MENU_NEXT = -2,
         MENU_BACK = -1
     };
+
+    enum ItemStatus
+    {
+        ItemEnabled,
+        ItemDisabled
+    };
     
     class IMenu SPMOD_FINAL
     {
     public:
-        using MenuItemCallback_t = void (*)(IMenu *const menu, size_t item, int player);
+        using MenuItemCallback_t = ItemStatus (*)(IMenu *const menu, size_t item, int player);
         using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
 
-        
-
-        virtual void Display(int player,
+        virtual void display(int player,
                             int page,
                             int time) = 0;
-        virtual void Close(...) const = 0;
-        virtual void SetTitle(const char *text) = 0;
-        virtual void AppendItem(const char *name,
+        virtual void close(...) const = 0;
+        virtual void setTitle(const char *text) = 0;
+        virtual void appendItem(const char *name,
                                 MenuItemCallback_t callback) = 0;
     protected:
         virtual ~IMenu() {}
@@ -50,8 +53,9 @@ namespace SPMod
     {
     public:
         using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
-        virtual IMenu *registerMenu(MenuHandler_t handler) = 0;
-        virtual IMenu *registerMenu(SourcePawn::IPluginFunction *func) = 0;
+        virtual IMenu *registerMenu(MenuHandler_t handler, bool global) = 0;
+        virtual IMenu *registerMenu(SourcePawn::IPluginFunction *func, bool global) = 0;
+        virtual IMenu *findMenu(size_t mid) const = 0;
     protected:
         virtual ~IMenuManager() {}
     };

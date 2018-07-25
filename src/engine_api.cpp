@@ -38,7 +38,7 @@ static void MessageBegin_Pre(int msg_dest, int msg_type, const float *pOrigin, e
 {
     if(msg_type == gmsgShowMenu || msg_type == gmsgVGUIMenu)
     {
-        gSPGlobal->getMenuManagerCore()->CloseMenu(ed);
+        gSPGlobal->getMenuManagerCore()->closeMenu(ENTINDEX(ed));
     }
     RETURN_META(MRES_IGNORED);
 }

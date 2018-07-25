@@ -114,6 +114,7 @@ C_DLLEXPORT int Meta_Detach(PLUG_LOADTIME now [[maybe_unused]],
 
     gSPGlobal->getPluginManagerCore()->clearPlugins();
     gSPGlobal->getTimerManagerCore()->clearTimers();
+    gSPGlobal->getMenuManagerCore()->clearMenus();
     gSPGlobal->getCommandManagerCore()->clearCommands();
     fwdMngr->clearForwards();
     gSPGlobal->getNativeManagerCore()->clearNatives();

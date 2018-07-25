@@ -24,95 +24,100 @@
 
 void UTIL_ShowMenu(edict_t* pEdict, int slots, int time, char *menu, int mlen);
 
-struct MenuItem
-{
-    /* MenuItem(std::string n,
-             MenuItemCallback_t c,
-             SourcePawn::IPluginFunction *f) : name(n),
-                                               callback(c),
-                                               pluginCallback(f)
-    {} */
-    MenuItem(std::string s) : name(s) {}
-    std::string name;
-    // MenuItemCallback_t callback;
-    // SourcePawn::IPluginFunction *pluginCallback;
-};
 
 class Menu: public IMenu
 {
 public:
+    struct MenuItem
+    {
+        MenuItem(std::string n,
+                MenuItemCallback_t c,
+                SourcePawn::IPluginFunction *f) : name(n),
+                                                  callback(c),
+                                                  pluginCallback(f)
+        {}
+        ItemStatus execCallback(Menu *menu, size_t i, int player)
+        {
+            ItemStatus result = ItemEnabled;
+            if(callback)
+            {
+                result = callback(menu, i, player);
+            }
+            if(pluginCallback && pluginCallback->IsRunnable())
+            {
+                pluginCallback->PushCell(static_cast<cell_t>(menu->getId()));
+                pluginCallback->PushCell(static_cast<cell_t>(i));
+                pluginCallback->PushCell(static_cast<cell_t>(player));
+                pluginCallback->Execute(reinterpret_cast<cell_t*>(&result));
+            }
+            return result;
+        }
+        std::string name;
+        MenuItemCallback_t callback;
+        SourcePawn::IPluginFunction *pluginCallback;
+    };
+
+public:
     Menu(size_t id,
-         MenuHandler_t handler);
+         MenuHandler_t handler,
+         bool global);
     Menu(size_t id,
-         SourcePawn::IPluginFunction *handler);
+         SourcePawn::IPluginFunction *handler,
+         bool global);
 
     ~Menu() {}
 
-    void Display(int player,
+    void display(int player,
                  int page,
-                 int time);
+                 int time) override;
     
-    void Close(...) const;
+    void close(...) const override;
 
-    void SetTitle(const char *text) override
-    {
-        SetTitleCore(text);
-    }
-    void SetTitleCore(std::string_view text);
+    bool getGlobal() const;
 
-    void SetItemsPerPage(int value);
-    int GetItemsPerPage() const;
+    void setTitle(const char *text) override;
+    void setTitleCore(std::string_view text);
 
-    int GetTime() const
-    {
-        return m_time;
-    }
+    void setItemsPerPage(int value);
+    int getItemsPerPage() const;
 
-    int GetKeys() const
-    {
-        return m_keys;
-    }
+    int getTime() const;
+    int getKeys() const;
+    int keyToSlot(int key) const;
 
-    int KeyToSlot(int key) const
-    {
-        return m_slots[key];
-    }
+    void appendItem(const char *name,
+                    MenuItemCallback_t callback) override;
 
-    virtual void AppendItem(const char *name,
-                            MenuItemCallback_t callback) override
-    {
-        AppendItemCore(name, callback);
-    }
+    void appendItemCore(std::string_view name,
+                        MenuItemCallback_t callback);
+    void appendItemCore(std::string_view name,
+                        SourcePawn::IPluginFunction *pluginCallback);
 
-    void AppendItemCore(std::string_view name,
-                    MenuItemCallback_t callback);
-    void AppendItemCore(std::string_view name,
-                    SourcePawn::IPluginFunction *pluginCallback);
-
-    bool InsertItem(size_t position,
+    bool insertItemCore(size_t position,
                     std::string_view name,
                     MenuItemCallback_t callback);
-    bool InsertItem(size_t position,
+    bool insertItemCore(size_t position,
                     std::string_view name,
                     SourcePawn::IPluginFunction *pluginCallback);
 
-    bool RemoveItem(size_t position);
-    void RemoveAllItems();
+    bool removeItem(size_t position);
+    void removeAllItems();
 
-    void AddHandler(MenuHandler_t func);
-    void AddPluginHandler(SourcePawn::IPluginFunction *func);
+    void addHandler(MenuHandler_t func);
+    void addPluginHandler(SourcePawn::IPluginFunction *func);
 
 
-    void ExecHandler(int player, int item);
+    void execHandler(int player, int item);
 
     size_t getId() const;
 private:
-    void addItem(int pos,
-                 std::string_view name,
-                 MenuItemCallback_t callback,
-                 SourcePawn::IPluginFunction *pluginCallback);
+    void _addItem(int pos,
+                  std::string_view name,
+                  MenuItemCallback_t callback,
+                  SourcePawn::IPluginFunction *pluginCallback);
 private:
     size_t m_id;
+    bool m_global;
     std::string m_title;
     int m_time;
     int m_itemsPerPage;
@@ -128,36 +133,30 @@ private:
 class MenuManager : public IMenuManager
 {
 public:
-    MenuManager()
-    {
-        for(int i = 1; i < 33; i++)
-        {
-            m_playerMenu[i] = -1;
-            m_playerPage[i] = 0;
-        }
-    }
+    MenuManager();
     ~MenuManager() = default;
 
-    IMenu *registerMenu(MenuHandler_t handler) override
+    IMenu *registerMenu(MenuHandler_t handler, bool global) override;
+    IMenu *registerMenu(SourcePawn::IPluginFunction *func, bool global) override;
+    IMenu *findMenu(size_t mid) const;
+
+    template<typename ...Args>
+    std::shared_ptr<Menu> registerMenuCore(Args... args)
     {
-        return registerMenuCore(handler).get();
+        std::shared_ptr<Menu> menu = std::make_shared<Menu>(m_mid++, std::forward<Args>(args)...);
+        m_menus.push_back(menu);
+        return menu;
     }
-    IMenu *registerMenu(SourcePawn::IPluginFunction *func) override
-    {
-        return registerMenuCore(func).get();
-    }
-    
-    std::shared_ptr<Menu> registerMenuCore(MenuHandler_t handler);
-    std::shared_ptr<Menu> registerMenuCore(SourcePawn::IPluginFunction *func);
-    
+    std::shared_ptr<Menu> findMenuCore(size_t index) const;
+
     void destroyMenu(size_t index);
-    std::shared_ptr<Menu> findMenu(size_t index) const;
     void clearMenus();
 
-    void AttachMenu(int player, size_t menuId, int page);
+    void attachMenu(int player, size_t menuId, int page);
+    void closeMenu(int player);
+
     META_RES ClientCommand(edict_t *pEntity);
     void ClientDisconnected(edict_t *pEntity);
-    void CloseMenu(edict_t *pEntity);
 private:
     size_t m_mid = 0;
     std::vector<std::shared_ptr<Menu>> m_menus;

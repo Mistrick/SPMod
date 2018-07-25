@@ -17,32 +17,36 @@
 
 #include "spmod.hpp"
 
-int gmsgShowMenu;
-int gmsgVGUIMenu;
+int gmsgShowMenu = 0;
+int gmsgVGUIMenu = 0;
 
 Menu::Menu(size_t id,
-           MenuHandler_t handler) : m_id(id),
-                                    m_title(""),
-                                    m_time(-1),
-                                    m_itemsPerPage(7),
-                                    m_keys(0),
-                                    m_handler(handler),
-                                    m_pluginHandler(nullptr)
+           MenuHandler_t handler,
+           bool global) : m_id(id),
+                          m_global(global),
+                          m_title(""),
+                          m_time(-1),
+                          m_itemsPerPage(7),
+                          m_keys(0),
+                          m_handler(handler),
+                          m_pluginHandler(nullptr)
 {}
 Menu::Menu(size_t id,
-           SourcePawn::IPluginFunction *handler) : m_id(id),
-                                                   m_title(""),
-                                                   m_time(-1),
-                                                   m_itemsPerPage(7),
-                                                   m_keys(0),
-                                                   m_handler(nullptr),
-                                                   m_pluginHandler(handler)
+           SourcePawn::IPluginFunction *handler,
+           bool global) : m_id(id),
+                          m_global(global),
+                          m_title(""),
+                          m_time(-1),
+                          m_itemsPerPage(7),
+                          m_keys(0),
+                          m_handler(nullptr),
+                          m_pluginHandler(handler)
 {}
 
-void Menu::Display(int player, int page, int time)
+void Menu::display(int player, int page, int time)
 {
-    // TODO: close last menu before override
-    gSPGlobal->getMenuManagerCore()->CloseMenu(INDEXENT(player));
+    // close last menu before override
+    gSPGlobal->getMenuManagerCore()->closeMenu(player);
 
     // format and show menu
     int keys = 0;
@@ -57,18 +61,45 @@ void Menu::Display(int player, int page, int time)
     size_t slot = 0;
 
     // TODO: add color autodetect (hl don't show colors)
+    // TODO: rework loop, what if item removed in callback?
+    ItemStatus ret = ItemEnabled;
+
     for(size_t i = start; i < end; i++)
     {
         // TODO: number format
         // TODO: item callback
-        text << "\\r" << slot + 1 << ". \\w" << m_items[i].name << "\n";
-        keys |= (1 << slot);
+        
+        // rework to MenuItem method?
+        /* if(m_items[i].callback)
+        {
+            ret = m_items[i].callback(this, i, player);
+        }
+        if(m_items[i].pluginCallback && m_items[i].pluginCallback->IsRunnable())
+        {
+            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(m_id));
+            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(i));
+            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(player));
+            m_items[i].pluginCallback->Execute(reinterpret_cast<cell_t*>(&ret));
+        } */
+
+        ret = m_items[i].execCallback(this, i, player);
+
+        if(ret == ItemEnabled)
+        {
+            text << "\\r" << slot + 1 << ". \\w" << m_items[i].name << "\n";
+            keys |= (1 << slot);
+        }
+        else
+        {
+            text << "\\r" << slot + 1 << ". \\d" << m_items[i].name << "\n";
+        }
+
         m_slots[slot++] = i;
+        ret = ItemEnabled;
     }
 
     text << "\n";
 
-    // TODO: make it safe
     while(slot < 7)
     {
         slot++;
@@ -116,7 +147,7 @@ void Menu::Display(int player, int page, int time)
     buffer[sizeof(buffer) - 1] = '\0';
 #endif
 
-    gSPGlobal->getMenuManagerCore()->AttachMenu(player, m_id, page);
+    gSPGlobal->getMenuManagerCore()->attachMenu(player, m_id, page);
 
     m_keys = keys;
     m_time = time;
@@ -124,59 +155,90 @@ void Menu::Display(int player, int page, int time)
     //show
     UTIL_ShowMenu(INDEXENT(player), keys, time, buffer, strlen(buffer));
 }
-void Menu::Close(...) const
+void Menu::close(...) const
 {
     // code
 }
 
-void Menu::SetTitleCore(std::string_view text)
+bool Menu::getGlobal() const
+{
+    return m_global;
+}
+
+void Menu::setTitle(const char *text)
+{
+    setTitleCore(text);
+}
+
+void Menu::setTitleCore(std::string_view text)
 {
     m_title = text;
 }
-void Menu::SetItemsPerPage(int value)
+void Menu::setItemsPerPage(int value)
 {
     m_itemsPerPage = value;
 }
-int Menu::GetItemsPerPage() const
+int Menu::getItemsPerPage() const
 {
     return m_itemsPerPage;
 }
 
-void Menu::AppendItemCore(std::string_view name,
-                      MenuItemCallback_t callback)
+int Menu::getTime() const
 {
-    addItem(-1, name, callback, nullptr);
-}
-void Menu::AppendItemCore(std::string_view name,
-                      SourcePawn::IPluginFunction *pluginCallback)
-{
-    addItem(-1, name, nullptr, pluginCallback);
+    return m_time;
 }
 
-bool Menu::InsertItem(size_t position,
+int Menu::getKeys() const
+{
+    return m_keys;
+}
+
+int Menu::keyToSlot(int key) const
+{
+    return m_slots[key];
+}
+
+void Menu::appendItem(const char *name,
+                MenuItemCallback_t callback)
+{
+    appendItemCore(name, callback);
+}
+
+void Menu::appendItemCore(std::string_view name,
+                      MenuItemCallback_t callback)
+{
+    _addItem(-1, name, callback, nullptr);
+}
+void Menu::appendItemCore(std::string_view name,
+                      SourcePawn::IPluginFunction *pluginCallback)
+{
+    _addItem(-1, name, nullptr, pluginCallback);
+}
+
+bool Menu::insertItemCore(size_t position,
                       std::string_view name,
                       MenuItemCallback_t callback)
 {
     if(position < 0 || position >= m_items.size())
         return false;
     
-    addItem(position, name, callback, nullptr);
+    _addItem(position, name, callback, nullptr);
 
     return true;
 }
-bool Menu::InsertItem(size_t position,
+bool Menu::insertItemCore(size_t position,
                        std::string_view name,
                        SourcePawn::IPluginFunction *pluginCallback)
 {
     if(position < 0 || position >= m_items.size())
         return false;
     
-    addItem(position, name, nullptr, pluginCallback);
+    _addItem(position, name, nullptr, pluginCallback);
 
     return true;
 }
 
-bool Menu::RemoveItem(size_t position)
+bool Menu::removeItem(size_t position)
 {
     if(position < 0 || position >= m_items.size())
         return false;
@@ -185,27 +247,27 @@ bool Menu::RemoveItem(size_t position)
 
     return true;
 }
-void Menu::RemoveAllItems()
+void Menu::removeAllItems()
 {
     m_items.clear();
 }
 
-void Menu::AddHandler(MenuHandler_t func)
+void Menu::addHandler(MenuHandler_t func)
 {
     m_handler = func;
 }
-void Menu::AddPluginHandler(SourcePawn::IPluginFunction *func)
+void Menu::addPluginHandler(SourcePawn::IPluginFunction *func)
 {
     m_pluginHandler = func;
 }
 
-void Menu::ExecHandler(int player, int item)
+void Menu::execHandler(int player, int item)
 {
     if(m_handler)
     {
         m_handler(this, item, player);
     }
-    if(m_pluginHandler)
+    if(m_pluginHandler && m_pluginHandler->IsRunnable())
     {
         m_pluginHandler->PushCell(static_cast<cell_t>(m_id));
         m_pluginHandler->PushCell(static_cast<cell_t>(item));
@@ -219,12 +281,12 @@ size_t Menu::getId() const
     return m_id;
 }
 
-void Menu::addItem(int pos,
+void Menu::_addItem(int pos,
                    std::string_view name,
                    MenuItemCallback_t callback,
                    SourcePawn::IPluginFunction *pluginCallback)
 {
-    MenuItem item(name.data()/* , callback, pluginCallback */);
+    MenuItem item(name.data() , callback, pluginCallback);
     if(pos == -1)
     {
         m_items.push_back(item);
@@ -235,29 +297,51 @@ void Menu::addItem(int pos,
     }
 }
 
-std::shared_ptr<Menu> MenuManager::registerMenuCore(MenuHandler_t handler)
+MenuManager::MenuManager()
 {
-    std::shared_ptr<Menu> menu = std::make_shared<Menu>(m_mid++, handler);
-    m_menus.push_back(menu);
-    return menu;
+    for(int i = 1; i < 33; i++)
+    {
+        m_playerMenu[i] = -1;
+        m_playerPage[i] = 0;
+    }
 }
-std::shared_ptr<Menu> MenuManager::registerMenuCore(SourcePawn::IPluginFunction *func)
+
+IMenu *MenuManager::registerMenu(MenuHandler_t handler, bool global)
 {
-    std::shared_ptr<Menu> menu = std::make_shared<Menu>(m_mid++, func);
-    m_menus.push_back(menu);
-    return menu;
+    return registerMenuCore(handler, global).get();
+}
+IMenu *MenuManager::registerMenu(SourcePawn::IPluginFunction *func, bool global)
+{
+    return registerMenuCore(func, global).get();
+}
+
+IMenu *MenuManager::findMenu(size_t mid) const
+{
+    return findMenuCore(mid).get();
 }
 
 void MenuManager::destroyMenu(size_t index)
 {
-    /* for(auto menu : m_menus)
+    // close menu for any player
+    for(int i = 1; i < 33; i++)
     {
-        if(menu->getId() == index)
-            m_menus.erase(menu);
-    } */
+        if(m_playerMenu[i] == static_cast<int>(index))
+            closeMenu(i);
+    }
+
+    auto iter = m_menus.begin();
+    while (iter != m_menus.end())
+    {
+        if ((*iter)->getId() == index)
+        {
+            m_menus.erase(iter);
+            break;
+        }
+        ++iter;
+    }
 }
 
-std::shared_ptr<Menu> MenuManager::findMenu(size_t index) const
+std::shared_ptr<Menu> MenuManager::findMenuCore(size_t index) const
 {
     for(auto menu : m_menus)
     {
@@ -273,10 +357,20 @@ void MenuManager::clearMenus()
     m_mid = 0;
 }
 
-void MenuManager::AttachMenu(int player, size_t menuId, int page)
+void MenuManager::attachMenu(int player, size_t menuId, int page)
 {
     m_playerMenu[player] = menuId;
     m_playerPage[player] = page;
+}
+void MenuManager::closeMenu(int player)
+{
+    if(m_playerMenu[player] == -1)
+        return;
+    
+    std::shared_ptr<Menu> pMenu = findMenuCore(m_playerMenu[player]);
+
+    m_playerMenu[player] = -1;
+    pMenu->execHandler(player, MENU_EXIT);
 }
 
 META_RES MenuManager::ClientCommand(edict_t *pEntity)
@@ -287,24 +381,28 @@ META_RES MenuManager::ClientCommand(edict_t *pEntity)
     if(m_playerMenu[player] == -1)
         return MRES_IGNORED;
     
-    auto pMenu = findMenu(m_playerMenu[player]);
-
-    if(pMenu->GetKeys() & (1 << pressedKey))
+    std::shared_ptr<Menu> pMenu = findMenuCore(m_playerMenu[player]);
+    
+    if(pMenu->getKeys() & (1 << pressedKey))
     {
         m_playerMenu[player] = -1;
 
-        int slot = pMenu->KeyToSlot(pressedKey);
+        int slot = pMenu->keyToSlot(pressedKey);
+
+        pMenu->execHandler(player, slot);
 
         if(slot == MENU_BACK)
         {
-            pMenu->Display(player, m_playerPage[player] - 1, pMenu->GetTime());
+            pMenu->display(player, m_playerPage[player] - 1, pMenu->getTime());
         }
         else if(slot == MENU_NEXT)
         {
-            pMenu->Display(player, m_playerPage[player] + 1, pMenu->GetTime());
+            pMenu->display(player, m_playerPage[player] + 1, pMenu->getTime());
         }
-
-        pMenu->ExecHandler(player, slot);
+        else if(!pMenu->getGlobal())
+        {
+            destroyMenu(pMenu->getId());
+        }
 
         return MRES_SUPERCEDE;
     }
@@ -314,21 +412,7 @@ META_RES MenuManager::ClientCommand(edict_t *pEntity)
 
 void MenuManager::ClientDisconnected(edict_t *pEntity)
 {
-    // TODO: close menu if exist
-    CloseMenu(pEntity);
-}
-
-void MenuManager::CloseMenu(edict_t *pEntity)
-{
-    int player = ENTINDEX(pEntity);
-
-    if(m_playerMenu[player] == -1)
-        return;
-    
-    auto pMenu = findMenu(m_playerMenu[player]);
-
-    m_playerMenu[player] = -1;
-    pMenu->ExecHandler(player, MENU_EXIT);
+    closeMenu(ENTINDEX(pEntity));
 }
 
 // TODO: move to util.cpp or same

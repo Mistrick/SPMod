@@ -45,8 +45,13 @@ typedef CallbackHandler = function ItemStatus (Menu menu, MenuItem item, int pla
 
 methodmap Menu
 {
-    public native Menu(MenuHandler handler);
-    public native void Display(int player, int time = -1, int page = 0);
+    public native Menu(MenuHandler handler, bool global = false);
+    public native void Display(int player, int page = 0, int time = -1);
     public native void SetTitle(const char[] title);
-    public native void AddItem(const char[] name);
+    public native void AddItem(const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
+    public native void InsertItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
+    public native void RemoveItem(int position);
+    public native void RemoveAllItems();
 }
+
+native void CloseMenu(int player);

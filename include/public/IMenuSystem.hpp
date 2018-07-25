@@ -20,12 +20,20 @@
 namespace SPMod
 {
     
-
+    enum
+    {
+        MENU_EXIT = -3,
+        MENU_NEXT = -2,
+        MENU_BACK = -1
+    };
+    
     class IMenu SPMOD_FINAL
     {
     public:
         using MenuItemCallback_t = void (*)(IMenu *const menu, size_t item, int player);
         using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
+
+        
 
         virtual void Display(int player,
                             int page,

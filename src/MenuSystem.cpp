@@ -18,10 +18,12 @@
 #include "spmod.hpp"
 
 int gmsgShowMenu;
+int gmsgVGUIMenu;
 
 Menu::Menu(size_t id,
            MenuHandler_t handler) : m_id(id),
                                     m_title(""),
+                                    m_time(-1),
                                     m_itemsPerPage(7),
                                     m_keys(0),
                                     m_handler(handler),
@@ -30,6 +32,7 @@ Menu::Menu(size_t id,
 Menu::Menu(size_t id,
            SourcePawn::IPluginFunction *handler) : m_id(id),
                                                    m_title(""),
+                                                   m_time(-1),
                                                    m_itemsPerPage(7),
                                                    m_keys(0),
                                                    m_handler(nullptr),
@@ -38,6 +41,9 @@ Menu::Menu(size_t id,
 
 void Menu::Display(int player, int page, int time)
 {
+    // TODO: close last menu before override
+    gSPGlobal->getMenuManagerCore()->CloseMenu(INDEXENT(player));
+
     // format and show menu
     int keys = 0;
 
@@ -48,34 +54,54 @@ void Menu::Display(int player, int page, int time)
 
     size_t start = page * m_itemsPerPage;
     size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
-    size_t i = 0;
+    size_t slot = 0;
 
-    for(i = start; i < end; i++)
+    // TODO: add color autodetect (hl don't show colors)
+    for(size_t i = start; i < end; i++)
     {
         // TODO: number format
         // TODO: item callback
-        text << i + 1 << ". " << m_items[i].name << "\n";
-        keys |= (1 << i);
+        text << "\\r" << slot + 1 << ". \\w" << m_items[i].name << "\n";
+        keys |= (1 << slot);
+        m_slots[slot++] = i;
     }
 
     text << "\n";
 
+    // TODO: make it safe
+    while(slot < 7)
+    {
+        slot++;
+        text << "\n";
+    }
+
     if(m_items.size() > end)
     {
-        keys |= (1 << i);
-        text << ++i << ". " << "Next" << "\n";
+        keys |= (1 << slot);
+        m_slots[slot] = MENU_NEXT;
+        text << "\\r" << ++slot << ". \\w" << "Next" << "\n";
+    }
+    else
+    {
+        slot++;
+        text << "\n";
     }
 
     if(page)
     {
-        keys |= (1 << i);
-        text << ++i << ". " << "Back" << "\n";
+        keys |= (1 << slot);
+        m_slots[slot] = MENU_BACK;
+        text << "\\r" << ++slot << ". \\w"<< "Back" << "\n";
     }
     else
+    {
+        slot++;
         text << "\n";
+    }
 
-    keys |= (1 << i);
-    text << (++i == 10 ? 0 : i) << ". " << "Exit" << "\n";
+    keys |= (1 << slot);
+    m_slots[slot] = MENU_EXIT;
+    text << "\\r" << (++slot == 10 ? 0 : slot) << ". \\w" << "Exit" << "\n";
 
     char buffer[512];
 
@@ -90,8 +116,11 @@ void Menu::Display(int player, int page, int time)
     buffer[sizeof(buffer) - 1] = '\0';
 #endif
 
-    gSPGlobal->getMenuManagerCore()->AttachMenu(player, m_id);
+    gSPGlobal->getMenuManagerCore()->AttachMenu(player, m_id, page);
+
     m_keys = keys;
+    m_time = time;
+
     //show
     UTIL_ShowMenu(INDEXENT(player), keys, time, buffer, strlen(buffer));
 }
@@ -244,26 +273,62 @@ void MenuManager::clearMenus()
     m_mid = 0;
 }
 
-void MenuManager::AttachMenu(int player, size_t menuId)
+void MenuManager::AttachMenu(int player, size_t menuId, int page)
 {
     m_playerMenu[player] = menuId;
+    m_playerPage[player] = page;
 }
 
-void MenuManager::ClientCommand(edict_t *pEntity)
+META_RES MenuManager::ClientCommand(edict_t *pEntity)
 {
     int pressedKey = std::stoi(CMD_ARGV(1), nullptr, 0) - 1;
     int player = ENTINDEX(pEntity);
 
     if(m_playerMenu[player] == -1)
-        return;
+        return MRES_IGNORED;
     
-     auto pMenu = findMenu(m_playerMenu[player]);
+    auto pMenu = findMenu(m_playerMenu[player]);
 
     if(pMenu->GetKeys() & (1 << pressedKey))
     {
         m_playerMenu[player] = -1;
-        pMenu->ExecHandler(player, pressedKey);
+
+        int slot = pMenu->KeyToSlot(pressedKey);
+
+        if(slot == MENU_BACK)
+        {
+            pMenu->Display(player, m_playerPage[player] - 1, pMenu->GetTime());
+        }
+        else if(slot == MENU_NEXT)
+        {
+            pMenu->Display(player, m_playerPage[player] + 1, pMenu->GetTime());
+        }
+
+        pMenu->ExecHandler(player, slot);
+
+        return MRES_SUPERCEDE;
     }
+
+    return MRES_IGNORED;
+}
+
+void MenuManager::ClientDisconnected(edict_t *pEntity)
+{
+    // TODO: close menu if exist
+    CloseMenu(pEntity);
+}
+
+void MenuManager::CloseMenu(edict_t *pEntity)
+{
+    int player = ENTINDEX(pEntity);
+
+    if(m_playerMenu[player] == -1)
+        return;
+    
+    auto pMenu = findMenu(m_playerMenu[player]);
+
+    m_playerMenu[player] = -1;
+    pMenu->ExecHandler(player, MENU_EXIT);
 }
 
 // TODO: move to util.cpp or same

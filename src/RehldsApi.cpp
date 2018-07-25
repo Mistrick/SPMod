@@ -36,6 +36,9 @@ static void SV_DropClientHook(IRehldsHook_SV_DropClient *chain,
     forward->pushString(string);
     forward->execFunc(nullptr);
 
+    // TODO: move to player class?
+    gSPGlobal->getMenuManagerCore()->ClientDisconnected(client->GetEdict());
+
     chain->callNext(client, crash, string);
 }
 

@@ -34,6 +34,15 @@ static void ChangeLevel(const char *s1,
     RETURN_META(MRES_IGNORED);
 }
 
+static void MessageBegin_Pre(int msg_dest, int msg_type, const float *pOrigin, edict_t *ed)
+{
+    if(msg_type == gmsgShowMenu || msg_type == gmsgVGUIMenu)
+    {
+        gSPGlobal->getMenuManagerCore()->CloseMenu(ed);
+    }
+    RETURN_META(MRES_IGNORED);
+}
+
 enginefuncs_t gEngineFunctionsTable =
 {
     nullptr,		// pfnPrecacheModel()
@@ -82,7 +91,7 @@ enginefuncs_t gEngineFunctionsTable =
     nullptr,		// pfnLightStyle()
     nullptr,		// pfnDecalIndex()
     nullptr,		// pfnPointContents()
-    nullptr,		// pfnMessageBegin()
+    MessageBegin_Pre,		// pfnMessageBegin()
     nullptr,		// pfnMessageEnd()
     nullptr,		// pfnWriteByte()
     nullptr,		// pfnWriteChar()
@@ -206,11 +215,15 @@ enginefuncs_t gEngineFunctionsTable =
     nullptr,	    // pfnEngCheckParm()
 };
 
-int	RegUserMsg_Post(const char *pszName, int iSize)
+static int RegUserMsg_Post(const char *pszName, int iSize)
 {
     if(!strcmp(pszName, "ShowMenu"))
     {
         gmsgShowMenu = META_RESULT_ORIG_RET(int);
+    }
+    else if(!strcmp(pszName, "VGUIMenu"))
+    {
+        gmsgVGUIMenu = META_RESULT_ORIG_RET(int);
     }
 
     RETURN_META_VALUE(MRES_IGNORED, 0);

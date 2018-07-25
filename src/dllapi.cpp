@@ -97,7 +97,7 @@ static void ClientCommand(edict_t *pEntity)
 
     if (!strCmd.compare("menuselect"))
 	{
-        gSPGlobal->getMenuManagerCore()->ClientCommand(pEntity);
+        res = gSPGlobal->getMenuManagerCore()->ClientCommand(pEntity);
     }
 
     RETURN_META(res);

@@ -48,7 +48,10 @@ public:
 
     ~Menu() {}
 
-    void Display(int player, int page, int time);
+    void Display(int player,
+                 int page,
+                 int time);
+    
     void Close(...) const;
 
     void SetTitle(const char *text) override
@@ -60,9 +63,19 @@ public:
     void SetItemsPerPage(int value);
     int GetItemsPerPage() const;
 
+    int GetTime() const
+    {
+        return m_time;
+    }
+
     int GetKeys() const
     {
         return m_keys;
+    }
+
+    int KeyToSlot(int key) const
+    {
+        return m_slots[key];
     }
 
     virtual void AppendItem(const char *name,
@@ -101,9 +114,11 @@ private:
 private:
     size_t m_id;
     std::string m_title;
+    int m_time;
     int m_itemsPerPage;
     int m_keys;
-    
+    int m_slots[10];
+
     MenuHandler_t m_handler;
     SourcePawn::IPluginFunction *m_pluginHandler;
 
@@ -113,7 +128,14 @@ private:
 class MenuManager : public IMenuManager
 {
 public:
-    MenuManager() = default;
+    MenuManager()
+    {
+        for(int i = 1; i < 33; i++)
+        {
+            m_playerMenu[i] = -1;
+            m_playerPage[i] = 0;
+        }
+    }
     ~MenuManager() = default;
 
     IMenu *registerMenu(MenuHandler_t handler) override
@@ -132,11 +154,14 @@ public:
     std::shared_ptr<Menu> findMenu(size_t index) const;
     void clearMenus();
 
-    void AttachMenu(int player, size_t menuId);
-    void ClientCommand(edict_t *pEntity);
+    void AttachMenu(int player, size_t menuId, int page);
+    META_RES ClientCommand(edict_t *pEntity);
+    void ClientDisconnected(edict_t *pEntity);
+    void CloseMenu(edict_t *pEntity);
 private:
     size_t m_mid = 0;
     std::vector<std::shared_ptr<Menu>> m_menus;
 
     int m_playerMenu[33];
+    int m_playerPage[33];
 };

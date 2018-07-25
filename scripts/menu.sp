@@ -20,6 +20,13 @@ public void OnPluginInit()
 	m.AddItem("two");
 	m.AddItem("three");
 	m.AddItem("four");
+	m.AddItem("5");
+	m.AddItem("6");
+	m.AddItem("7");
+	m.AddItem("8");
+	m.AddItem("9");
+	m.AddItem("10");
+	m.AddItem("11");
 }
 
 public PluginReturn MenuTest(int client, Command cid)

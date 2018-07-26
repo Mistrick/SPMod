@@ -47,3 +47,5 @@ include/llvm/*
 
 # Visual Studio Code
 .vscode/
+*.smx
+scripts/compile.dat

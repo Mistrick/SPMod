@@ -29,7 +29,8 @@ namespace SPMod
     enum ItemStatus
     {
         ItemEnabled,
-        ItemDisabled
+        ItemDisabled,
+        ItemHide
     };
     
     class IMenu SPMOD_FINAL

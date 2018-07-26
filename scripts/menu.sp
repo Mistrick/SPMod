@@ -8,11 +8,15 @@ public PluginInfo pluginInfo =
 	url = "https://github.com/Amaroq7/SPMod"
 };
 
-Menu m;
+Menu m, m2;
+bool hide = false;
 
 public void OnPluginInit()
 {
 	Command("^say /m", MenuTest);
+	Command("^say /m2", MenuTest2);
+	Command("^say /cm", MenuTest3);
+	Command("^say /h", MenuTest4);
 
 	m = Menu(TestHandler, true);
 	m.SetTitle("Title");
@@ -27,17 +31,60 @@ public void OnPluginInit()
 	m.AddItem("9", 0, ItemHandler);
 	m.AddItem("10");
 	m.AddItem("11");
+	
+	m2 = Menu(TestHandler, true);
+	
+	m2.SetTitle("Test 2");
+	m2.AddItem("one", 0, ItemHandler3);
+	m2.AddItem("two", 0, ItemHandler3);
+	m2.AddItem("three", 0, ItemHandler3);
+	m2.AddItem("four");
+	m2.AddItem("5", 0, ItemHandler3);
+	m2.AddItem("6", 0, ItemHandler3);
+	m2.AddItem("7", 0, ItemHandler3);
+	m2.AddItem("8");
+	m2.AddItem("9");
+
+	m2.SetProp(MProp_NumberFormat, "\\r[#num]");
 } 
 
 public ItemStatus ItemHandler(Menu menu, MenuItem item, int player)
 {
 	PrintToServer("Item callback: menu %d, item %d, player %d", menu, item, player);
+	item.SetName("changed");
 	return ItemDisabled;
-} 
+}
+
+public ItemStatus ItemHandler2(Menu menu, MenuItem item, int player)
+{
+	char name[64];
+	item.GetName(name, sizeof name);
+	PrintToServer("Item callback2: menu %d, item %s[%d], player %d", menu, name, item, player);
+	
+	return ItemEnabled;
+}
+public ItemStatus ItemHandler3(Menu menu, MenuItem item, int player)
+{
+	return hide ? ItemHide : ItemEnabled;
+}
 
 public PluginReturn MenuTest(int client, Command cid)
 {
-	m.Display(client);
+	m.Display(client, 0, 10);
+}
+public PluginReturn MenuTest2(int client, Command cid)
+{
+	m2.Display(client);
+}
+
+public PluginReturn MenuTest3(int client, Command cid)
+{
+	CloseMenu(client);
+}
+
+public PluginReturn MenuTest4(int client, Command cid)
+{
+	hide = !hide;
 }
 
 public int TestHandler(Menu menu, MenuItem item, int player)

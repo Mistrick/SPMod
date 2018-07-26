@@ -27,6 +27,14 @@ enum Menu
     INVALID_MENU = -1
 };
 
+enum MenuProp
+{
+    /**
+     * @param format            Should contain "#num", example "\\r[#num]"
+     */
+    MProp_NumberFormat
+};
+
 enum MenuItem
 {
     MenuExit = -3,
@@ -37,7 +45,8 @@ enum MenuItem
 enum ItemStatus
 {
 	ItemEnabled,
-	ItemDisabled
+	ItemDisabled,
+    ItemHide
 };
 
 typedef MenuHandler = function int (Menu menu, MenuItem item, int player);
@@ -52,6 +61,13 @@ methodmap Menu
     public native void InsertItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
     public native void RemoveItem(int position);
     public native void RemoveAllItems();
+    public native void SetProp(MenuProp prop, any ...);
+}
+
+methodmap MenuItem
+{
+    public native void GetName(char[] name, int size);
+    public native void SetName(const char[] name);
 }
 
 native void CloseMenu(int player);

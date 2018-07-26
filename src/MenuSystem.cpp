@@ -25,6 +25,7 @@ Menu::Menu(size_t id,
            bool global) : m_id(id),
                           m_global(global),
                           m_title(""),
+                          m_numberFormat("\\r#num."),
                           m_time(-1),
                           m_itemsPerPage(7),
                           m_keys(0),
@@ -36,6 +37,7 @@ Menu::Menu(size_t id,
            bool global) : m_id(id),
                           m_global(global),
                           m_title(""),
+                          m_numberFormat("\\r#num."),
                           m_time(-1),
                           m_itemsPerPage(7),
                           m_keys(0),
@@ -57,45 +59,53 @@ void Menu::display(int player, int page, int time)
     text << m_title << "\n\n";
 
     size_t start = page * m_itemsPerPage;
-    size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
+
+    if(page)
+    {
+        size_t hidden = 0;
+        int firstVisible = -1;
+
+        for(size_t i = 0; i < start; i++)
+        {
+            if(m_items[i].execCallback(this, i, player) == ItemHide)
+                hidden++;
+            else if(firstVisible == -1)
+                firstVisible = i;
+        }
+
+        if(hidden && firstVisible >= 0)
+            start = firstVisible;
+    }
+
+    //size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
     size_t slot = 0;
+    size_t i = 0;
+
+    //std::string number;
 
     // TODO: add color autodetect (hl don't show colors)
-    // TODO: rework loop, what if item removed in callback?
     ItemStatus ret = ItemEnabled;
 
-    for(size_t i = start; i < end; i++)
+    for(i = start; slot < static_cast<size_t>(m_itemsPerPage) && i < m_items.size(); i++)
     {
-        // TODO: number format
-        // TODO: item callback
-        
-        // rework to MenuItem method?
-        /* if(m_items[i].callback)
-        {
-            ret = m_items[i].callback(this, i, player);
-        }
-        if(m_items[i].pluginCallback && m_items[i].pluginCallback->IsRunnable())
-        {
-            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(m_id));
-            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(i));
-            m_items[i].pluginCallback->PushCell(static_cast<cell_t>(player));
-            m_items[i].pluginCallback->Execute(reinterpret_cast<cell_t*>(&ret));
-        } */
-
         ret = m_items[i].execCallback(this, i, player);
+
+        if(ret == ItemHide)
+            continue;
+
+        text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
 
         if(ret == ItemEnabled)
         {
-            text << "\\r" << slot + 1 << ". \\w" << m_items[i].name << "\n";
+            text << " \\w" << m_items[i].name << "\n";
             keys |= (1 << slot);
         }
         else
         {
-            text << "\\r" << slot + 1 << ". \\d" << m_items[i].name << "\n";
+            text << " \\d" << m_items[i].name << "\n";
         }
 
         m_slots[slot++] = i;
-        ret = ItemEnabled;
     }
 
     text << "\n";
@@ -106,11 +116,13 @@ void Menu::display(int player, int page, int time)
         text << "\n";
     }
 
-    if(m_items.size() > end)
+    if(m_items.size() > i)
     {
         keys |= (1 << slot);
         m_slots[slot] = MENU_NEXT;
-        text << "\\r" << ++slot << ". \\w" << "Next" << "\n";
+        
+        text << replace(m_numberFormat, "#num", std::to_string(++slot));
+        text << " \\w" << "Next" << "\n";
     }
     else
     {
@@ -122,7 +134,9 @@ void Menu::display(int player, int page, int time)
     {
         keys |= (1 << slot);
         m_slots[slot] = MENU_BACK;
-        text << "\\r" << ++slot << ". \\w"<< "Back" << "\n";
+
+        text << replace(m_numberFormat, "#num", std::to_string(++slot));
+        text << " \\w" << "Back" << "\n";
     }
     else
     {
@@ -132,7 +146,9 @@ void Menu::display(int player, int page, int time)
 
     keys |= (1 << slot);
     m_slots[slot] = MENU_EXIT;
-    text << "\\r" << (++slot == 10 ? 0 : slot) << ". \\w" << "Exit" << "\n";
+
+    text << replace(m_numberFormat, "#num", std::to_string(++slot == 10 ? 0 : slot));
+    text << " \\w" << "Exit" << "\n";
 
     char buffer[512];
 
@@ -181,6 +197,11 @@ void Menu::setItemsPerPage(int value)
 int Menu::getItemsPerPage() const
 {
     return m_itemsPerPage;
+}
+
+void Menu::setNumberFormat(std::string_view format)
+{
+    m_numberFormat = format;
 }
 
 int Menu::getTime() const
@@ -252,6 +273,24 @@ void Menu::removeAllItems()
     m_items.clear();
 }
 
+bool Menu::setItemName(size_t item,
+                       std::string_view name)
+{
+    if(item >= m_items.size())
+        return false;
+    
+    m_items[item].name = name.data();
+
+    return true;
+}
+
+std::string_view Menu::getItemName(size_t item) const
+{
+    if(item >= m_items.size())
+        return "";
+    return m_items[item].name;
+}
+
 void Menu::addHandler(MenuHandler_t func)
 {
     m_handler = func;
@@ -269,8 +308,9 @@ void Menu::execHandler(int player, int item)
     }
     if(m_pluginHandler && m_pluginHandler->IsRunnable())
     {
+        cell_t packedItem = item >= 0 ? PACK_ITEM(m_id, item) : item;
         m_pluginHandler->PushCell(static_cast<cell_t>(m_id));
-        m_pluginHandler->PushCell(static_cast<cell_t>(item));
+        m_pluginHandler->PushCell(packedItem);
         m_pluginHandler->PushCell(static_cast<cell_t>(player));
         m_pluginHandler->Execute(nullptr);
     }
@@ -444,4 +484,14 @@ void UTIL_ShowMenu(edict_t* pEdict, int slots, int time, char *menu, int mlen)
         menu = n;
     }
     while (*n);
+}
+
+std::string replace(const std::string& str, const std::string& from, const std::string& to)
+{
+    std::string temp(str);
+    size_t start_pos = temp.find(from);
+    if(start_pos == std::string::npos)
+        return std::string("");
+    temp.replace(start_pos, from.length(), to);
+    return temp;
 }

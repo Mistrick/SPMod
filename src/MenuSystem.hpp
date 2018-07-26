@@ -23,7 +23,10 @@
 // using MenuHandler_t = void (*)(Menu *menu, size_t item, int player);
 
 void UTIL_ShowMenu(edict_t* pEdict, int slots, int time, char *menu, int mlen);
+std::string replace(const std::string& str, const std::string& from, const std::string& to);
 
+#define PACK_ITEM(menuid, itemid) (menuid << 16 | itemid)
+#define UNPACK_ITEM(index, menuid, itemid) menuid = index >> 16; itemid = index & 0xFFFF
 
 class Menu: public IMenu
 {
@@ -32,29 +35,52 @@ public:
     {
         MenuItem(std::string n,
                 MenuItemCallback_t c,
-                SourcePawn::IPluginFunction *f) : name(n),
+                SourcePawn::IPluginFunction *f,
+                cell_t d) : name(n),
                                                   callback(c),
-                                                  pluginCallback(f)
+                                                  pluginCallback(f),
+                                                  data(d)
         {}
         ItemStatus execCallback(Menu *menu, size_t i, int player)
         {
             ItemStatus result = ItemEnabled;
-            if(callback)
+            /* if(callback)
             {
                 result = callback(menu, i, player);
             }
             if(pluginCallback && pluginCallback->IsRunnable())
             {
                 pluginCallback->PushCell(static_cast<cell_t>(menu->getId()));
-                pluginCallback->PushCell(static_cast<cell_t>(i));
+                pluginCallback->PushCell(static_cast<cell_t>(PACK_ITEM(menu->getId(), i)));
                 pluginCallback->PushCell(static_cast<cell_t>(player));
                 pluginCallback->Execute(reinterpret_cast<cell_t*>(&result));
+            } */
+
+            try
+            {
+                auto *func = std::get<SourcePawn::IPluginFunction *>(callback);
+                if(pluginCallback && pluginCallback->IsRunnable())
+                {
+                    func->PushCell(static_cast<cell_t>(menu->getId()));
+                    func->PushCell(static_cast<cell_t>(PACK_ITEM(menu->getId(), i)));
+                    func->PushCell(static_cast<cell_t>(player));
+                    func->Execute(reinterpret_cast<cell_t*>(&result));
+                }
             }
+            catch catch (const std::bad_variant_access &e [[maybe_unused]])
+            {
+                auto func = std::get<MenuItemCallback_t>(callback);
+                if(func)
+                {
+                    result = func(this, std::get<void *>(m_data));
+                }
+            }
+
             return result;
         }
         std::string name;
-        MenuItemCallback_t callback;
-        SourcePawn::IPluginFunction *pluginCallback;
+        std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> callback;
+        std::variant<cell_t, void *> data;
     };
 
 public:
@@ -81,6 +107,8 @@ public:
     void setItemsPerPage(int value);
     int getItemsPerPage() const;
 
+    void setNumberFormat(std::string_view format);
+
     int getTime() const;
     int getKeys() const;
     int keyToSlot(int key) const;
@@ -89,9 +117,11 @@ public:
                     MenuItemCallback_t callback) override;
 
     void appendItemCore(std::string_view name,
-                        MenuItemCallback_t callback);
+                        MenuItemCallback_t callback,
+                        cell_t data);
     void appendItemCore(std::string_view name,
-                        SourcePawn::IPluginFunction *pluginCallback);
+                        SourcePawn::IPluginFunction *pluginCallback,
+                        cell_t data);
 
     bool insertItemCore(size_t position,
                     std::string_view name,
@@ -102,6 +132,10 @@ public:
 
     bool removeItem(size_t position);
     void removeAllItems();
+
+    bool setItemName(size_t item,
+                     std::string_view name);
+    std::string_view getItemName(size_t item) const;
 
     void addHandler(MenuHandler_t func);
     void addPluginHandler(SourcePawn::IPluginFunction *func);
@@ -114,11 +148,13 @@ private:
     void _addItem(int pos,
                   std::string_view name,
                   MenuItemCallback_t callback,
-                  SourcePawn::IPluginFunction *pluginCallback);
+                  SourcePawn::IPluginFunction *pluginCallback,
+                  cell_t data);
 private:
     size_t m_id;
     bool m_global;
     std::string m_title;
+    std::string m_numberFormat;
     int m_time;
     int m_itemsPerPage;
     int m_keys;

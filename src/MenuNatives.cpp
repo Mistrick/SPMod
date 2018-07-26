@@ -207,6 +207,48 @@ static cell_t MenuDisplay(SourcePawn::IPluginContext *ctx,
     return 1;
 }
 
+enum
+{
+    MProp_NumberFormat
+};
+
+// native void SetProp(MenuProp prop, any ...);
+static cell_t MenuSetProp(SourcePawn::IPluginContext *ctx,
+                          const cell_t *params)
+{
+    enum { arg_index = 1, arg_prop, arg_args };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    switch(params[arg_prop])
+    {
+    case MProp_NumberFormat:
+        // TODO: find "#num" before call func
+        char *format;
+        ctx->LocalToString(params[arg_args], &format);
+        pMenu->setNumberFormat(format);
+        break;
+    default:
+        break;
+    }
+
+    return 1;
+}
+
 // native void CloseMenu(int player);
 static cell_t MenuClose(SourcePawn::IPluginContext *ctx,
                           const cell_t *params)
@@ -224,7 +266,89 @@ static cell_t MenuClose(SourcePawn::IPluginContext *ctx,
     // TODO: make loop if player == 0
     gSPGlobal->getMenuManagerCore()->closeMenu(player);
 
-    UTIL_ShowMenu(INDEXENT(player), 0, 0, "\n", 1);
+    char menu[] = "\n";
+    UTIL_ShowMenu(INDEXENT(player), 0, 0, menu, strlen(menu));
+
+    return 1;
+}
+
+// native void MenuItem.SetName(const char[] name);
+static cell_t MenuItemSetName(SourcePawn::IPluginContext *ctx,
+                          const cell_t *params)
+{
+    enum { arg_item = 1, arg_name };
+    
+    cell_t packedItem = params[arg_item];
+
+    cell_t menuId, itemId;
+    UNPACK_ITEM(packedItem, menuId, itemId);
+
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    char *name;
+    ctx->LocalToString(params[arg_name], &name);
+
+    pMenu->setItemName(itemId, name);
+
+    return 1;
+}
+
+// native void MenuItem.GetName(char[] name, int size);
+static cell_t MenuItemGetName(SourcePawn::IPluginContext *ctx,
+                          const cell_t *params)
+{
+    enum { arg_item = 1, arg_name, arg_size };
+    
+    cell_t packedItem = params[arg_item];
+
+    cell_t menuId, itemId;
+    UNPACK_ITEM(packedItem, menuId, itemId);
+
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    char *name;
+    ctx->LocalToString(params[arg_name], &name);
+
+    std::string str = pMenu->getItemName(itemId).data();
+
+    #if defined __STDC_LIB_EXT1__ || defined SP_MSVC
+    #if defined SP_MSVC
+    strncpy_s(name, params[arg_size], str.c_str(), _TRUNCATE);
+    #else
+    strncpy_s(name, params[arg_size], str.c_str(), params[arg_size] - 1);
+    #endif
+    #else
+    std::strncpy(name, str.c_str(), params[arg_size]);
+    name[params[arg_size] - 1] = '\0';
+    #endif
+
+    pMenu->setItemName(itemId, name);
 
     return 1;
 }
@@ -237,9 +361,13 @@ sp_nativeinfo_t gMenuNatives[] =
     {   "Menu.InsertItem",          MenuInsertItem      },
     {   "Menu.RemoveItem",          MenuRemoveItem      },
     {   "Menu.RemoveAllItems",      MenuRemoveAllItems  },
+    {   "Menu.SetProp",             MenuSetProp         },
     {   "Menu.Display",             MenuDisplay         },
 
     {   "CloseMenu",                MenuClose           },
+
+    {   "MenuItem.SetName",         MenuItemSetName     },
+    {   "MenuItem.GetName",         MenuItemGetName     },
 
     {   nullptr,                    nullptr             }
 };

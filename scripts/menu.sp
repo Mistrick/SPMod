@@ -35,15 +35,15 @@ public void OnPluginInit()
 	m2 = Menu(TestHandler, true);
 	
 	m2.SetTitle("Test 2");
-	m2.AddItem("one", 0, ItemHandler3);
-	m2.AddItem("two", 0, ItemHandler3);
-	m2.AddItem("three", 0, ItemHandler3);
-	m2.AddItem("four");
-	m2.AddItem("5", 0, ItemHandler3);
-	m2.AddItem("6", 0, ItemHandler3);
-	m2.AddItem("7", 0, ItemHandler3);
-	m2.AddItem("8");
-	m2.AddItem("9");
+	m2.AddItem("one", 1, ItemHandler3);
+	m2.AddItem("two", 2, ItemHandler3);
+	m2.AddItem("three", 3, ItemHandler3);
+	m2.AddItem("four", 4);
+	m2.AddItem("5", 5, ItemHandler3);
+	m2.AddItem("6", 6, ItemHandler3);
+	m2.AddItem("7", 7, ItemHandler3);
+	m2.AddItem("8", 9);
+	m2.AddItem("9", 10);
 
 	m2.SetProp(MProp_NumberFormat, "\\r[#num]");
 } 
@@ -89,6 +89,6 @@ public PluginReturn MenuTest4(int client, Command cid)
 
 public int TestHandler(Menu menu, MenuItem item, int player)
 {
-	PrintToServer("menu %d, item %d, player %d", menu, item, player);
+	PrintToServer("menu %d, item %d, item data %d, player %d", menu, item, item.GetData(), player);
 	return 0;
 }

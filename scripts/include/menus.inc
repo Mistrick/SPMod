@@ -58,6 +58,7 @@ methodmap Menu
     public native void Display(int player, int page = 0, int time = -1);
     public native void SetTitle(const char[] title);
     public native void AddItem(const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
+    public native void AddStaticItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
     public native void InsertItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
     public native void RemoveItem(int position);
     public native void RemoveAllItems();
@@ -68,6 +69,8 @@ methodmap MenuItem
 {
     public native void GetName(char[] name, int size);
     public native void SetName(const char[] name);
+    public native any GetData();
+    public native void SetData(any data);
 }
 
 native void CloseMenu(int player);

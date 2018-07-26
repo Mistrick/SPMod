@@ -45,7 +45,8 @@ namespace SPMod
         virtual void close(...) const = 0;
         virtual void setTitle(const char *text) = 0;
         virtual void appendItem(const char *name,
-                                MenuItemCallback_t callback) = 0;
+                                MenuItemCallback_t callback,
+                                void *data) = 0;
     protected:
         virtual ~IMenu() {}
     };

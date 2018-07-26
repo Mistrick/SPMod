@@ -21,7 +21,7 @@ int gmsgShowMenu = 0;
 int gmsgVGUIMenu = 0;
 
 Menu::Menu(size_t id,
-           MenuHandler_t handler,
+           std::variant<SourcePawn::IPluginFunction *, MenuHandler_t> &&handler,
            bool global) : m_id(id),
                           m_global(global),
                           m_title(""),
@@ -29,21 +29,11 @@ Menu::Menu(size_t id,
                           m_time(-1),
                           m_itemsPerPage(7),
                           m_keys(0),
-                          m_handler(handler),
-                          m_pluginHandler(nullptr)
-{}
-Menu::Menu(size_t id,
-           SourcePawn::IPluginFunction *handler,
-           bool global) : m_id(id),
-                          m_global(global),
-                          m_title(""),
-                          m_numberFormat("\\r#num."),
-                          m_time(-1),
-                          m_itemsPerPage(7),
-                          m_keys(0),
-                          m_handler(nullptr),
-                          m_pluginHandler(handler)
-{}
+                          m_handler(handler)
+{
+    for(int i = 0; i < 7; i++)
+        m_staticSlots[i] = nullptr;
+}
 
 void Menu::display(int player, int page, int time)
 {
@@ -88,7 +78,9 @@ void Menu::display(int player, int page, int time)
 
     for(i = start; slot < static_cast<size_t>(m_itemsPerPage) && i < m_items.size(); i++)
     {
-        ret = m_items[i].execCallback(this, i, player);
+        MenuItem &item = /* m_staticSlots[slot] ? *m_staticSlots[slot] : */ m_items[slot];
+
+        ret = item.execCallback(this, i, player);
 
         if(ret == ItemHide)
             continue;
@@ -97,12 +89,12 @@ void Menu::display(int player, int page, int time)
 
         if(ret == ItemEnabled)
         {
-            text << " \\w" << m_items[i].name << "\n";
+            text << " \\w" << item.name << "\n";
             keys |= (1 << slot);
         }
         else
         {
-            text << " \\d" << m_items[i].name << "\n";
+            text << " \\d" << item.name << "\n";
         }
 
         m_slots[slot++] = i;
@@ -112,6 +104,8 @@ void Menu::display(int player, int page, int time)
 
     while(slot < 7)
     {
+        // check for static
+
         slot++;
         text << "\n";
     }
@@ -220,41 +214,41 @@ int Menu::keyToSlot(int key) const
 }
 
 void Menu::appendItem(const char *name,
-                MenuItemCallback_t callback)
+                      MenuItemCallback_t callback,
+                      void *data)
 {
-    appendItemCore(name, callback);
+    appendItemCore(name, callback, data);
 }
 
 void Menu::appendItemCore(std::string_view name,
-                      MenuItemCallback_t callback)
+                          std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> &&callback,
+                          std::variant<cell_t, void *> &&data)
 {
-    _addItem(-1, name, callback, nullptr);
-}
-void Menu::appendItemCore(std::string_view name,
-                      SourcePawn::IPluginFunction *pluginCallback)
-{
-    _addItem(-1, name, nullptr, pluginCallback);
+    _addItem(-1, name, std::move(callback), std::move(data));
 }
 
 bool Menu::insertItemCore(size_t position,
-                      std::string_view name,
-                      MenuItemCallback_t callback)
+                          std::string_view name,
+                          std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> &&callback,
+                          std::variant<cell_t, void *> &&data)
 {
     if(position < 0 || position >= m_items.size())
         return false;
     
-    _addItem(position, name, callback, nullptr);
+    _addItem(position, name, std::move(callback), std::move(data));
 
     return true;
 }
-bool Menu::insertItemCore(size_t position,
-                       std::string_view name,
-                       SourcePawn::IPluginFunction *pluginCallback)
+
+bool Menu::setStaticItem(size_t position,
+                   std::string_view name,
+                   std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> &&callback,
+                   std::variant<cell_t, void *> &&data)
 {
-    if(position < 0 || position >= m_items.size())
+    if(position >= 7)
         return false;
     
-    _addItem(position, name, nullptr, pluginCallback);
+    m_staticSlots[position] = std::make_shared<MenuItem>(name.data(), std::move(callback), std::move(data));
 
     return true;
 }
@@ -291,28 +285,47 @@ std::string_view Menu::getItemName(size_t item) const
     return m_items[item].name;
 }
 
-void Menu::addHandler(MenuHandler_t func)
+void Menu::setItemData(size_t item,
+                       std::variant<cell_t, void *> &&data)
+{
+    m_items[item].data = data;
+}
+
+cell_t Menu::getItemData(size_t item)
+{
+    try
+    {
+        return std::get<cell_t>(m_items[item].data);
+    }
+    catch (const std::bad_variant_access &e [[maybe_unused]])
+    {
+        return 0;
+    }
+}
+
+void Menu::setHandler(std::variant<SourcePawn::IPluginFunction *, MenuHandler_t> &&func)
 {
     m_handler = func;
-}
-void Menu::addPluginHandler(SourcePawn::IPluginFunction *func)
-{
-    m_pluginHandler = func;
 }
 
 void Menu::execHandler(int player, int item)
 {
-    if(m_handler)
+    try
     {
-        m_handler(this, item, player);
+        auto *func = std::get<SourcePawn::IPluginFunction *>(m_handler);
+        if(func && func->IsRunnable())
+        {
+            cell_t packedItem = item >= 0 ? PACK_ITEM(m_id, item) : item;
+            func->PushCell(static_cast<cell_t>(m_id));
+            func->PushCell(packedItem);
+            func->PushCell(static_cast<cell_t>(player));
+            func->Execute(nullptr);
+        }
     }
-    if(m_pluginHandler && m_pluginHandler->IsRunnable())
+    catch (const std::bad_variant_access &e [[maybe_unused]])
     {
-        cell_t packedItem = item >= 0 ? PACK_ITEM(m_id, item) : item;
-        m_pluginHandler->PushCell(static_cast<cell_t>(m_id));
-        m_pluginHandler->PushCell(packedItem);
-        m_pluginHandler->PushCell(static_cast<cell_t>(player));
-        m_pluginHandler->Execute(nullptr);
+        auto func = std::get<MenuHandler_t>(m_handler);
+        func(this, item, player);
     }
 }
 
@@ -321,19 +334,19 @@ size_t Menu::getId() const
     return m_id;
 }
 
-void Menu::_addItem(int pos,
-                   std::string_view name,
-                   MenuItemCallback_t callback,
-                   SourcePawn::IPluginFunction *pluginCallback)
+void Menu::_addItem(int position,
+                    std::string_view name,
+                    std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> &&callback,
+                    std::variant<cell_t, void *> &&data)
 {
-    MenuItem item(name.data() , callback, pluginCallback);
-    if(pos == -1)
+    MenuItem item(name.data(), std::move(callback), std::move(data));
+    if(position == -1)
     {
         m_items.push_back(item);
     }
     else
     {
-        m_items.insert(m_items.begin() + pos, item);
+        m_items.insert(m_items.begin() + position, item);
     }
 }
 

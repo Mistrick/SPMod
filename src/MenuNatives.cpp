@@ -89,15 +89,44 @@ static cell_t MenuAddItem(SourcePawn::IPluginContext *ctx,
     char *name;
     ctx->LocalToString(params[arg_name], &name);
 
-    // TODO: implement arg_data, callback
-    pMenu->appendItemCore(name, ctx->GetFunctionById(params[arg_callback]));
+    pMenu->appendItemCore(name, ctx->GetFunctionById(params[arg_callback]), params[arg_data]);
+
+    return 1;
+}
+
+// native void AddStaticItem(int position, const char name[], any data = 0, CallbackHandler callback = 0);
+static cell_t MenuAddStaticItem(SourcePawn::IPluginContext *ctx,
+                                const cell_t *params)
+{
+    enum { arg_index = 1, arg_position, arg_name, arg_data, arg_callback };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    char *name;
+    ctx->LocalToString(params[arg_name], &name);
+
+    pMenu->setStaticItem(static_cast<size_t>(params[arg_position]), name, ctx->GetFunctionById(params[arg_callback]), params[arg_data]);
 
     return 1;
 }
 
 // native void InsertItem(int position, const char name[], any data = 0, CallbackHandler callback = 0);
 static cell_t MenuInsertItem(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                             const cell_t *params)
 {
     enum { arg_index = 1, arg_position, arg_name, arg_data, arg_callback };
     
@@ -121,14 +150,14 @@ static cell_t MenuInsertItem(SourcePawn::IPluginContext *ctx,
     ctx->LocalToString(params[arg_name], &name);
 
     // TODO: implement arg_data
-    pMenu->insertItemCore(static_cast<size_t>(params[arg_position]), name, ctx->GetFunctionById(params[arg_callback]));
+    pMenu->insertItemCore(static_cast<size_t>(params[arg_position]), name, ctx->GetFunctionById(params[arg_callback]), params[arg_data]);
 
     return 1;
 }
 
 // native void RemoveItem(int position);
 static cell_t MenuRemoveItem(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                             const cell_t *params)
 {
     enum { arg_index = 1, arg_position };
     
@@ -155,7 +184,7 @@ static cell_t MenuRemoveItem(SourcePawn::IPluginContext *ctx,
 
 // native void RemoveAllItems();
 static cell_t MenuRemoveAllItems(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                                 const cell_t *params)
 {
     enum { arg_index = 1};
     
@@ -251,7 +280,7 @@ static cell_t MenuSetProp(SourcePawn::IPluginContext *ctx,
 
 // native void CloseMenu(int player);
 static cell_t MenuClose(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                        const cell_t *params)
 {
     enum { arg_player = 1 };
     
@@ -274,11 +303,15 @@ static cell_t MenuClose(SourcePawn::IPluginContext *ctx,
 
 // native void MenuItem.SetName(const char[] name);
 static cell_t MenuItemSetName(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                              const cell_t *params)
 {
     enum { arg_item = 1, arg_name };
     
     cell_t packedItem = params[arg_item];
+
+    // MenuExit, Next, Back
+    if(packedItem < 0)
+        return 0;
 
     cell_t menuId, itemId;
     UNPACK_ITEM(packedItem, menuId, itemId);
@@ -308,12 +341,17 @@ static cell_t MenuItemSetName(SourcePawn::IPluginContext *ctx,
 
 // native void MenuItem.GetName(char[] name, int size);
 static cell_t MenuItemGetName(SourcePawn::IPluginContext *ctx,
-                          const cell_t *params)
+                              const cell_t *params)
 {
     enum { arg_item = 1, arg_name, arg_size };
     
     cell_t packedItem = params[arg_item];
 
+    // MenuExit, Next, Back
+    // TODO: throw error?
+    if(packedItem < 0)
+        return 0;
+    
     cell_t menuId, itemId;
     UNPACK_ITEM(packedItem, menuId, itemId);
 
@@ -353,11 +391,80 @@ static cell_t MenuItemGetName(SourcePawn::IPluginContext *ctx,
     return 1;
 }
 
+// native void MenuItem.SetData(any data);
+static cell_t MenuItemSetData(SourcePawn::IPluginContext *ctx,
+                              const cell_t *params)
+{
+    enum { arg_item = 1, arg_data };
+    
+    cell_t packedItem = params[arg_item];
+
+    // MenuExit, Next, Back
+    if(packedItem < 0)
+        return 0;
+    
+    cell_t menuId, itemId;
+    UNPACK_ITEM(packedItem, menuId, itemId);
+
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    pMenu->setItemData(itemId, params[arg_data]);
+
+    return 1;
+}
+
+// native any MenuItem.GetData();
+static cell_t MenuItemGetData(SourcePawn::IPluginContext *ctx,
+                              const cell_t *params)
+{
+    enum { arg_item = 1, arg_data };
+    
+    cell_t packedItem = params[arg_item];
+
+    // MenuExit, Next, Back
+    if(packedItem < 0)
+        return 0;
+    
+    cell_t menuId, itemId;
+    UNPACK_ITEM(packedItem, menuId, itemId);
+
+    if (menuId < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    return pMenu->getItemData(itemId);
+}
+
 sp_nativeinfo_t gMenuNatives[] =
 {
     {   "Menu.Menu",                MenuCreate          },
     {   "Menu.SetTitle",            MenuSetTitle        },
     {   "Menu.AddItem",             MenuAddItem         },
+    {   "Menu.AddStaticItem",       MenuAddStaticItem   },
     {   "Menu.InsertItem",          MenuInsertItem      },
     {   "Menu.RemoveItem",          MenuRemoveItem      },
     {   "Menu.RemoveAllItems",      MenuRemoveAllItems  },
@@ -368,6 +475,8 @@ sp_nativeinfo_t gMenuNatives[] =
 
     {   "MenuItem.SetName",         MenuItemSetName     },
     {   "MenuItem.GetName",         MenuItemGetName     },
+    {   "MenuItem.SetData",         MenuItemSetData     },
+    {   "MenuItem.GetData",         MenuItemGetData     },
 
     {   nullptr,                    nullptr             }
 };

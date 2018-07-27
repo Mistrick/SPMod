@@ -47,46 +47,63 @@ void Menu::display(int player, int page, int time)
     
     if(page)
     {
-        for(size_t i = 0; i < start; i++)
+        for(size_t j = 0; j < start; j++)
         {
-            if(m_items[i].execCallback(this, i, player) == ItemHide)
+            if(m_items[j].execCallback(this, j, player) == ItemHide)
                 hidden++;
         }
         start += hidden;
+
+        size_t statics = 0;
+        for(size_t j = 0; j < m_itemsPerPage; j++)
+        {
+            if(m_staticSlots[j])
+                statics++;
+        }
+        start -= statics * page;
     }
 
-    //size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
     size_t slot = 0;
-    size_t i = 0;
+    
 
-    //std::string number;
+    auto addItem = [&](ItemStatus r, size_t s, std::string n)
+    {
+        text << replace(m_numberFormat, "#num", std::to_string(s + 1 == 10 ? 0 : s + 1));
 
-    // TODO: add color autodetect (hl don't show colors)
+        if(r == ItemEnabled)
+        {
+            text << " \\w" << n << "\n";
+            keys |= (1 << s);
+        }
+        else
+        {
+            text << " \\d" << n << "\n";
+        }
+    };
+
     ItemStatus ret = ItemEnabled;
 
-    for(i = start; slot < m_itemsPerPage && i < m_items.size(); i++)
+    size_t i = start;
+    while(slot < m_itemsPerPage && i < m_items.size())
     {
-        // TODO: rework this
-        MenuItem &item = m_staticSlots[slot] ? --i, *m_staticSlots[slot] : m_items[i];
+        MenuItem &item = m_staticSlots[slot] ? *m_staticSlots[slot] : m_items[i];
 
         ret = item.execCallback(this, m_staticSlots[slot] ? m_items.size() + slot : i, player);
 
         if(ret == ItemHide)
+        {
+            if(!m_staticSlots[slot])
+                ++i;
             continue;
-
-        text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
-
-        if(ret == ItemEnabled)
-        {
-            text << " \\w" << item.name << "\n";
-            keys |= (1 << slot);
-        }
-        else
-        {
-            text << " \\d" << item.name << "\n";
         }
 
-        m_slots[slot++] = m_staticSlots[slot] ? m_items.size() + slot : i;
+        addItem(ret, slot, item.name);
+        m_slots[slot] = m_staticSlots[slot] ? m_items.size() + slot : i;
+
+        if(!m_staticSlots[slot])
+            ++i;
+        
+        slot++;
     }
 
     text << "\n";
@@ -101,19 +118,8 @@ void Menu::display(int player, int page, int time)
 
             if(ret != ItemHide)
             {
-                text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
-
-                if(ret == ItemEnabled)
-                {
-                    text << " \\w" << item.name << "\n";
-                    keys |= (1 << slot);
-                }
-                else
-                {
-                    text << " \\d" << item.name << "\n";
-                }
-
-                m_slots[slot++] = m_staticSlots[slot] ? m_items.size() + slot : i;
+                addItem(ret, slot, item.name);
+                m_slots[slot++] = m_items.size() + slot;
             }
         }
 
@@ -123,11 +129,8 @@ void Menu::display(int player, int page, int time)
 
     if(m_items.size() - hidden > i)
     {
-        keys |= (1 << slot);
-        m_slots[slot] = MENU_NEXT;
-        
-        text << replace(m_numberFormat, "#num", std::to_string(++slot));
-        text << " \\w" << "Next" << "\n";
+        addItem(ItemEnabled, slot, "Next");
+        m_slots[slot++] = MENU_NEXT;
     }
     else
     {
@@ -137,11 +140,8 @@ void Menu::display(int player, int page, int time)
 
     if(page)
     {
-        keys |= (1 << slot);
-        m_slots[slot] = MENU_BACK;
-
-        text << replace(m_numberFormat, "#num", std::to_string(++slot));
-        text << " \\w" << "Back" << "\n";
+        addItem(ItemEnabled, slot, "Back");
+        m_slots[slot++] = MENU_BACK;
     }
     else
     {
@@ -149,11 +149,11 @@ void Menu::display(int player, int page, int time)
         text << "\n";
     }
 
-    keys |= (1 << slot);
+    addItem(ItemEnabled, slot, "Exit");
     m_slots[slot] = MENU_EXIT;
 
-    text << replace(m_numberFormat, "#num", std::to_string(++slot == 10 ? 0 : slot));
-    text << " \\w" << "Exit" << "\n";
+    // TODO: add color autodetect (hl don't show colors)
+    // TODO: color tags, remove if game mode unsupport it
 
     char buffer[512];
 
@@ -173,10 +173,6 @@ void Menu::display(int player, int page, int time)
 
     //show
     UTIL_ShowMenu(INDEXENT(player), keys, time, buffer, strlen(buffer));
-}
-void Menu::close(...) const
-{
-    // code
 }
 
 bool Menu::getGlobal() const

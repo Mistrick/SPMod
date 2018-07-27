@@ -42,7 +42,6 @@ namespace SPMod
         virtual void display(int player,
                             int page,
                             int time) = 0;
-        virtual void close(...) const = 0;
         virtual void setTitle(const char *text) = 0;
         virtual void appendItem(const char *name,
                                 MenuItemCallback_t callback,

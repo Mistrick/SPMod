@@ -208,7 +208,7 @@ static cell_t MenuRemoveAllItems(SourcePawn::IPluginContext *ctx,
     return 1;
 }
 
-// native void Display(int player, int time = -1, int page = 0);
+// native void Display(int player, int page = 0, int time = -1);
 static cell_t MenuDisplay(SourcePawn::IPluginContext *ctx,
                           const cell_t *params)
 {

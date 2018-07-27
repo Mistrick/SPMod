@@ -80,8 +80,6 @@ public:
     void display(int player,
                  int page,
                  int time) override;
-    
-    void close(...) const override;
 
     bool getGlobal() const;
 

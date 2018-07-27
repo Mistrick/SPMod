@@ -30,10 +30,7 @@ Menu::Menu(size_t id,
                           m_itemsPerPage(7),
                           m_keys(0),
                           m_handler(handler)
-{
-    for(int i = 0; i < 7; i++)
-        m_staticSlots[i] = nullptr;
-}
+{}
 
 void Menu::display(int player, int page, int time)
 {
@@ -69,26 +66,27 @@ void Menu::display(int player, int page, int time)
 
     for(i = start; slot < m_itemsPerPage && i < m_items.size(); i++)
     {
-        ret = m_items[i].execCallback(this, i, player);
+        // TODO: rework this
+        MenuItem &item = m_staticSlots[slot] ? --i, *m_staticSlots[slot] : m_items[i];
+
+        ret = item.execCallback(this, m_staticSlots[slot] ? m_items.size() + slot : i, player);
 
         if(ret == ItemHide)
-        {
             continue;
-        }
 
         text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
 
         if(ret == ItemEnabled)
         {
-            text << " \\w" << m_items[i].name << "\n";
+            text << " \\w" << item.name << "\n";
             keys |= (1 << slot);
         }
         else
         {
-            text << " \\d" << m_items[i].name << "\n";
+            text << " \\d" << item.name << "\n";
         }
 
-        m_slots[slot++] = i;
+        m_slots[slot++] = m_staticSlots[slot] ? m_items.size() + slot : i;
     }
 
     text << "\n";
@@ -96,6 +94,28 @@ void Menu::display(int player, int page, int time)
     while(slot < 7)
     {
         // check for static
+        if(m_staticSlots[slot])
+        {
+            MenuItem &item = *m_staticSlots[slot];
+            ret = item.execCallback(this, m_items.size() + slot, player);
+
+            if(ret != ItemHide)
+            {
+                text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
+
+                if(ret == ItemEnabled)
+                {
+                    text << " \\w" << item.name << "\n";
+                    keys |= (1 << slot);
+                }
+                else
+                {
+                    text << " \\d" << item.name << "\n";
+                }
+
+                m_slots[slot++] = m_staticSlots[slot] ? m_items.size() + slot : i;
+            }
+        }
 
         slot++;
         text << "\n";
@@ -234,10 +254,10 @@ bool Menu::setStaticItem(size_t position,
                    std::variant<SourcePawn::IPluginFunction *, MenuItemCallback_t> &&callback,
                    std::variant<cell_t, void *> &&data)
 {
-    if(position >= 7)
+    if(position >= m_itemsPerPage)
         return false;
     
-    m_staticSlots[position] = std::make_shared<MenuItem>(name.data(), std::move(callback), std::move(data));
+    m_staticSlots[position] = std::make_unique<MenuItem>(name.data(), std::move(callback), std::move(data));
 
     return true;
 }
@@ -264,32 +284,45 @@ size_t Menu::getItems() const
 bool Menu::setItemName(size_t item,
                        std::string_view name)
 {
-    if(item >= m_items.size())
+    if(item >= m_items.size() + 10)
         return false;
     
-    m_items[item].name = name.data();
+    if(item >= m_items.size())
+        m_staticSlots[item - m_items.size()].get()->name = name.data();
+    else
+        m_items[item].name = name.data();
 
     return true;
 }
 
 std::string_view Menu::getItemName(size_t item) const
 {
-    if(item >= m_items.size())
+    if(item >= m_items.size() + 10)
         return "";
-    return m_items[item].name;
+
+    if(item >= m_items.size())
+        return m_staticSlots[item - m_items.size()].get()->name;
+    else
+        return m_items[item].name;
 }
 
 void Menu::setItemData(size_t item,
                        std::variant<cell_t, void *> &&data)
 {
-    m_items[item].data = data;
+    if(item >= m_items.size())
+        m_staticSlots[item - m_items.size()].get()->data;
+    else
+        m_items[item].data = data;
 }
 
 cell_t Menu::getItemData(size_t item)
 {
     try
     {
-        return std::get<cell_t>(m_items[item].data);
+        if(item >= m_items.size())
+            return std::get<cell_t>(m_staticSlots[item - m_items.size()].get()->data);
+        else 
+            return std::get<cell_t>(m_items[item].data);
     }
     catch (const std::bad_variant_access &e [[maybe_unused]])
     {

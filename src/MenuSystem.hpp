@@ -148,7 +148,7 @@ private:
     size_t m_itemsPerPage;
     int m_keys;
     int m_slots[10];
-    std::shared_ptr<MenuItem> m_staticSlots[7];
+    std::unique_ptr<MenuItem> m_staticSlots[10];
 
     std::variant<SourcePawn::IPluginFunction *, MenuHandler_t> m_handler;
 

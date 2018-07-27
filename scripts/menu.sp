@@ -59,6 +59,9 @@ public void OnPluginInit()
 	m3.AddItem("6", 3, ItemHandler3);
 	m3.AddItem("7");
 
+	m3.AddStaticItem(0, "static1", 23, ItemHandler2);
+	m3.AddStaticItem(5, "static2", 23, ItemHandler2);
+
 	m3.ItemsPerPage = 3;
 } 
 

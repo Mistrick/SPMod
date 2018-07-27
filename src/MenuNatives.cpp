@@ -149,7 +149,6 @@ static cell_t MenuInsertItem(SourcePawn::IPluginContext *ctx,
     char *name;
     ctx->LocalToString(params[arg_name], &name);
 
-    // TODO: implement arg_data
     pMenu->insertItemCore(static_cast<size_t>(params[arg_position]), name, ctx->GetFunctionById(params[arg_callback]), params[arg_data]);
 
     return 1;
@@ -234,6 +233,110 @@ static cell_t MenuDisplay(SourcePawn::IPluginContext *ctx,
     menuManager->displayMenu(pMenu, params[arg_player], params[arg_page], params[arg_time]);
 
     return 1;
+}
+
+// native void Menu.Destroy();
+static cell_t MenuDestroy(SourcePawn::IPluginContext *ctx,
+                          const cell_t *params)
+{
+    enum { arg_index = 1 };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    menuManager->destroyMenu(pMenu->getId());
+
+    return 1;
+}
+
+// native int Menu.Items.get();
+static cell_t MenuItemsGet(SourcePawn::IPluginContext *ctx,
+                           const cell_t *params)
+{
+    enum { arg_index = 1 };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    return static_cast<cell_t>(pMenu->getItems());
+}
+
+// native int Menu.ItemsPerPage.set(int value);
+static cell_t MenuItemsPerPageSet(SourcePawn::IPluginContext *ctx,
+                           const cell_t *params)
+{
+    enum { arg_index = 1, arg_value };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    pMenu->setItemsPerPage(static_cast<size_t>(params[arg_value]));
+    
+    return 1;
+}
+
+// native int Menu.ItemsPerPage.get();
+static cell_t MenuItemsPerPageGet(SourcePawn::IPluginContext *ctx,
+                           const cell_t *params)
+{
+    enum { arg_index = 1 };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu not found!");
+        return 0;
+    }
+
+    return static_cast<cell_t>(pMenu->getItemsPerPage());
 }
 
 enum
@@ -461,22 +564,26 @@ static cell_t MenuItemGetData(SourcePawn::IPluginContext *ctx,
 
 sp_nativeinfo_t gMenuNatives[] =
 {
-    {   "Menu.Menu",                MenuCreate          },
-    {   "Menu.SetTitle",            MenuSetTitle        },
-    {   "Menu.AddItem",             MenuAddItem         },
-    {   "Menu.AddStaticItem",       MenuAddStaticItem   },
-    {   "Menu.InsertItem",          MenuInsertItem      },
-    {   "Menu.RemoveItem",          MenuRemoveItem      },
-    {   "Menu.RemoveAllItems",      MenuRemoveAllItems  },
-    {   "Menu.SetProp",             MenuSetProp         },
-    {   "Menu.Display",             MenuDisplay         },
+    {   "Menu.Menu",                MenuCreate              },
+    {   "Menu.SetTitle",            MenuSetTitle            },
+    {   "Menu.AddItem",             MenuAddItem             },
+    {   "Menu.AddStaticItem",       MenuAddStaticItem       },
+    {   "Menu.InsertItem",          MenuInsertItem          },
+    {   "Menu.RemoveItem",          MenuRemoveItem          },
+    {   "Menu.RemoveAllItems",      MenuRemoveAllItems      },
+    {   "Menu.SetProp",             MenuSetProp             },
+    {   "Menu.Display",             MenuDisplay             },
+    {   "Menu.Destroy",             MenuDestroy             },
+    {   "Menu.Items.get",           MenuItemsGet            },
+    {   "Menu.ItemsPerPage.set",    MenuItemsPerPageSet     },
+    {   "Menu.ItemsPerPage.get",    MenuItemsPerPageGet     },
 
-    {   "CloseMenu",                MenuClose           },
+    {   "CloseMenu",                MenuClose               },
 
-    {   "MenuItem.SetName",         MenuItemSetName     },
-    {   "MenuItem.GetName",         MenuItemGetName     },
-    {   "MenuItem.SetData",         MenuItemSetData     },
-    {   "MenuItem.GetData",         MenuItemGetData     },
+    {   "MenuItem.SetName",         MenuItemSetName         },
+    {   "MenuItem.GetName",         MenuItemGetName         },
+    {   "MenuItem.SetData",         MenuItemSetData         },
+    {   "MenuItem.GetData",         MenuItemGetData         },
 
-    {   nullptr,                    nullptr             }
+    {   nullptr,                    nullptr                 }
 };

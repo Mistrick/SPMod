@@ -56,6 +56,8 @@ methodmap Menu
 {
     public native Menu(MenuHandler handler, bool global = false);
     public native void Display(int player, int page = 0, int time = -1);
+    // use only for global menu
+    public native void Destroy();
     public native void SetTitle(const char[] title);
     public native void AddItem(const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
     public native void AddStaticItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
@@ -63,6 +65,13 @@ methodmap Menu
     public native void RemoveItem(int position);
     public native void RemoveAllItems();
     public native void SetProp(MenuProp prop, any ...);
+    property int Items {
+        public native get();
+    }
+    property int ItemsPerPage {
+        public native get();
+        public native set(int value);
+    }
 }
 
 methodmap MenuItem

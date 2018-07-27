@@ -8,13 +8,14 @@ public PluginInfo pluginInfo =
 	url = "https://github.com/Amaroq7/SPMod"
 };
 
-Menu m, m2;
+Menu m, m2, m3;
 bool hide = false;
 
 public void OnPluginInit()
 {
 	Command("^say /m", MenuTest);
 	Command("^say /m2", MenuTest2);
+	Command("^say /m3", MenuTest5);
 	Command("^say /cm", MenuTest3);
 	Command("^say /h", MenuTest4);
 
@@ -46,6 +47,19 @@ public void OnPluginInit()
 	m2.AddItem("9", 10);
 
 	m2.SetProp(MProp_NumberFormat, "\\r[#num]");
+
+	m3 = Menu(TestHandler, true);
+	
+	m3.SetTitle("Test 3");
+	m3.AddItem("one");
+	m3.AddItem("two");
+	m3.AddItem("three");
+	m3.AddItem("four");
+	m3.AddItem("5", 0, ItemHandler3);
+	m3.AddItem("6", 3, ItemHandler3);
+	m3.AddItem("7");
+
+	m3.ItemsPerPage = 3;
 } 
 
 public ItemStatus ItemHandler(Menu menu, MenuItem item, int player)
@@ -65,6 +79,7 @@ public ItemStatus ItemHandler2(Menu menu, MenuItem item, int player)
 }
 public ItemStatus ItemHandler3(Menu menu, MenuItem item, int player)
 {
+	PrintToServer("Item callback3: menu %d, item %d, player %d", menu, item, player);
 	return hide ? ItemHide : ItemEnabled;
 }
 
@@ -75,6 +90,10 @@ public PluginReturn MenuTest(int client, Command cid)
 public PluginReturn MenuTest2(int client, Command cid)
 {
 	m2.Display(client);
+}
+public PluginReturn MenuTest5(int client, Command cid)
+{
+	m3.Display(client);
 }
 
 public PluginReturn MenuTest3(int client, Command cid)

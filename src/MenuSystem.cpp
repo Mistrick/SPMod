@@ -46,22 +46,16 @@ void Menu::display(int player, int page, int time)
     text << m_title << "\n\n";
 
     size_t start = page * m_itemsPerPage;
-
+    size_t hidden = 0;
+    
     if(page)
     {
-        size_t hidden = 0;
-        int firstVisible = -1;
-
         for(size_t i = 0; i < start; i++)
         {
             if(m_items[i].execCallback(this, i, player) == ItemHide)
                 hidden++;
-            else if(firstVisible == -1)
-                firstVisible = i;
         }
-
-        if(hidden && firstVisible >= 0)
-            start = firstVisible;
+        start += hidden;
     }
 
     //size_t end = start + m_itemsPerPage < m_items.size() ? start + m_itemsPerPage : m_items.size();
@@ -73,25 +67,25 @@ void Menu::display(int player, int page, int time)
     // TODO: add color autodetect (hl don't show colors)
     ItemStatus ret = ItemEnabled;
 
-    for(i = start; slot < static_cast<size_t>(m_itemsPerPage) && i < m_items.size(); i++)
+    for(i = start; slot < m_itemsPerPage && i < m_items.size(); i++)
     {
-        MenuItem &item = /* m_staticSlots[slot] ? *m_staticSlots[slot] : */ m_items[slot];
-
-        ret = item.execCallback(this, i, player);
+        ret = m_items[i].execCallback(this, i, player);
 
         if(ret == ItemHide)
+        {
             continue;
+        }
 
         text << replace(m_numberFormat, "#num", std::to_string(slot + 1));
 
         if(ret == ItemEnabled)
         {
-            text << " \\w" << item.name << "\n";
+            text << " \\w" << m_items[i].name << "\n";
             keys |= (1 << slot);
         }
         else
         {
-            text << " \\d" << item.name << "\n";
+            text << " \\d" << m_items[i].name << "\n";
         }
 
         m_slots[slot++] = i;
@@ -107,7 +101,7 @@ void Menu::display(int player, int page, int time)
         text << "\n";
     }
 
-    if(m_items.size() > i)
+    if(m_items.size() - hidden > i)
     {
         keys |= (1 << slot);
         m_slots[slot] = MENU_NEXT;
@@ -179,11 +173,11 @@ void Menu::setTitleCore(std::string_view text)
 {
     m_title = text;
 }
-void Menu::setItemsPerPage(int value)
+void Menu::setItemsPerPage(size_t value)
 {
     m_itemsPerPage = value;
 }
-int Menu::getItemsPerPage() const
+size_t Menu::getItemsPerPage() const
 {
     return m_itemsPerPage;
 }
@@ -260,6 +254,11 @@ bool Menu::removeItem(size_t position)
 void Menu::removeAllItems()
 {
     m_items.clear();
+}
+
+size_t Menu::getItems() const
+{
+    return m_items.size();
 }
 
 bool Menu::setItemName(size_t item,
@@ -446,11 +445,11 @@ META_RES MenuManager::ClientCommand(edict_t *pEntity)
 
         if(slot == MENU_BACK)
         {
-            pMenu->display(player, m_playerPage[player] - 1, pMenu->getTime());
+            displayMenu(pMenu, player, m_playerPage[player] - 1, pMenu->getTime());
         }
         else if(slot == MENU_NEXT)
         {
-            pMenu->display(player, m_playerPage[player] + 1, pMenu->getTime());
+            displayMenu(pMenu, player, m_playerPage[player] + 1, pMenu->getTime());
         }
         else if(!pMenu->getGlobal())
         {

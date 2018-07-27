@@ -88,8 +88,8 @@ public:
     void setTitle(const char *text) override;
     void setTitleCore(std::string_view text);
 
-    void setItemsPerPage(int value);
-    int getItemsPerPage() const;
+    void setItemsPerPage(size_t value);
+    size_t getItemsPerPage() const;
 
     void setNumberFormat(std::string_view format);
 
@@ -118,6 +118,8 @@ public:
     bool removeItem(size_t position);
     void removeAllItems();
 
+    size_t getItems() const;
+
     bool setItemName(size_t item,
                      std::string_view name);
     
@@ -143,7 +145,7 @@ private:
     std::string m_title;
     std::string m_numberFormat;
     int m_time;
-    int m_itemsPerPage;
+    size_t m_itemsPerPage;
     int m_keys;
     int m_slots[10];
     std::shared_ptr<MenuItem> m_staticSlots[7];

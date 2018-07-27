@@ -231,7 +231,7 @@ static cell_t MenuDisplay(SourcePawn::IPluginContext *ctx,
         return 0;
     }
 
-    pMenu->display(params[arg_player], params[arg_page], params[arg_time]);
+    menuManager->displayMenu(pMenu, params[arg_player], params[arg_page], params[arg_time]);
 
     return 1;
 }

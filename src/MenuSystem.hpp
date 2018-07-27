@@ -175,7 +175,7 @@ public:
     void destroyMenu(size_t index);
     void clearMenus();
 
-    void attachMenu(int player, size_t menuId, int page);
+    void displayMenu(std::shared_ptr<Menu> menu, int player, int page, int time);
     void closeMenu(int player);
 
     META_RES ClientCommand(edict_t *pEntity);

@@ -37,9 +37,6 @@ Menu::Menu(size_t id,
 
 void Menu::display(int player, int page, int time)
 {
-    // close last menu before override
-    gSPGlobal->getMenuManagerCore()->closeMenu(player);
-
     // format and show menu
     int keys = 0;
 
@@ -156,8 +153,6 @@ void Menu::display(int player, int page, int time)
     std::strncpy(buffer, text.str().c_str(), sizeof(buffer));
     buffer[sizeof(buffer) - 1] = '\0';
 #endif
-
-    gSPGlobal->getMenuManagerCore()->attachMenu(player, m_id, page);
 
     m_keys = keys;
     m_time = time;
@@ -410,11 +405,16 @@ void MenuManager::clearMenus()
     m_mid = 0;
 }
 
-void MenuManager::attachMenu(int player, size_t menuId, int page)
+void MenuManager::displayMenu(std::shared_ptr<Menu> menu, int player, int page, int time)
 {
-    m_playerMenu[player] = menuId;
+    closeMenu(player);
+
+    m_playerMenu[player] = menu->getId();
     m_playerPage[player] = page;
+
+    menu->display(player, page, time);
 }
+
 void MenuManager::closeMenu(int player)
 {
     if(m_playerMenu[player] == -1)

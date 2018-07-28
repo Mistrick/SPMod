@@ -27,6 +27,12 @@ enum Menu
     INVALID_MENU = -1
 };
 
+enum MenuStyle
+{
+    MenuItemStyle,
+    MenuTextStyle
+}
+
 enum MenuProp
 {
     /**
@@ -49,15 +55,34 @@ enum ItemStatus
     ItemHide
 };
 
-typedef MenuHandler = function int (Menu menu, MenuItem item, int player);
+typeset MenuHandler
+{
+	// text style
+	function void(
+		Menu menu,
+		int key,
+		int player
+	);
+
+	// item style
+	function void(
+		Menu menu,
+		MenuItem item,
+		int player
+	);
+};
+
 typedef CallbackHandler = function ItemStatus (Menu menu, MenuItem item, int player);
 
 methodmap Menu
 {
-    public native Menu(MenuHandler handler, bool global = false);
+    // text style always global
+    public native Menu(MenuHandler handler, MenuStyle style = MenuItemStyle, bool global = false);
     public native void Display(int player, int page = 0, int time = -1);
     // use only for global menu
     public native void Destroy();
+
+    // only for item style
     public native void SetTitle(const char[] title);
     public native void AddItem(const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
     public native void AddStaticItem(int position, const char[] name, any data = 0, CallbackHandler callback = INVALID_FUNCTION);
@@ -72,6 +97,10 @@ methodmap Menu
         public native get();
         public native set(int value);
     }
+    
+    // only for text tyle
+    public native void SetText(const char[] text);
+    public native void SetKeys(int keys);
 }
 
 methodmap MenuItem

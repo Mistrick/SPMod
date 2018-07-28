@@ -32,20 +32,55 @@ namespace SPMod
         ItemDisabled,
         ItemHide
     };
+
+    enum MenuStyle
+    {
+        MenuItemStyle,
+        MenuTextStyle
+    };
     
     class IMenu SPMOD_FINAL
     {
     public:
-        using MenuItemCallback_t = ItemStatus (*)(IMenu *const menu, size_t item, int player);
-        using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
+        using MenuItemCallback = ItemStatus (*)(IMenu *const menu, std::size_t item, int player);
+        using MenuHandler = void (*)(IMenu *const menu, std::size_t item, int player);
 
         virtual void display(int player,
                             int page,
                             int time) = 0;
+        virtual bool getGlobal() const = 0;
+
+        virtual void setText(const char *text) = 0;
+        virtual void setKeys(int keys) = 0;
+
         virtual void setTitle(const char *text) = 0;
+
+        virtual void setItemsPerPage(std::size_t value) = 0;
+        virtual std::size_t getItemsPerPage() const = 0;
+
+        virtual int getTime() const = 0;
+        virtual int getKeys() const = 0;
+        virtual int keyToSlot(int key) const = 0;
+
         virtual void appendItem(const char *name,
-                                MenuItemCallback_t callback,
+                                MenuItemCallback callback,
                                 void *data) = 0;
+        
+        virtual bool insertItem(std::size_t position,
+                                const char *name,
+                                MenuItemCallback callback,
+                                void *data) = 0;
+        
+        virtual bool removeItem(std::size_t position) = 0;
+        virtual void removeAllItems() = 0;
+
+        virtual std::size_t getItems() const = 0;
+
+        virtual void setHandler(MenuHandler func) = 0;
+
+        virtual void execHandlerItem(int player, int item) = 0;
+        virtual void execHandlerText(int player, int key) = 0;
+
     protected:
         virtual ~IMenu() {}
     };
@@ -53,10 +88,10 @@ namespace SPMod
     class IMenuManager SPMOD_FINAL
     {
     public:
-        using MenuHandler_t = void (*)(IMenu *const menu, size_t item, int player);
-        virtual IMenu *registerMenu(MenuHandler_t handler, bool global) = 0;
-        virtual IMenu *registerMenu(SourcePawn::IPluginFunction *func, bool global) = 0;
-        virtual IMenu *findMenu(size_t mid) const = 0;
+        using MenuHandler = void (*)(IMenu *const menu, std::size_t item, int player);
+        virtual IMenu *registerMenu(MenuHandler handler, MenuStyle style, bool global) = 0;
+        virtual IMenu *registerMenu(SourcePawn::IPluginFunction *func, MenuStyle style, bool global) = 0;
+        virtual IMenu *findMenu(std::size_t mid) const = 0;
     protected:
         virtual ~IMenuManager() {}
     };

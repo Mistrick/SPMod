@@ -8,7 +8,7 @@ public PluginInfo pluginInfo =
 	url = "https://github.com/Amaroq7/SPMod"
 };
 
-Menu m, m2, m3;
+Menu m, m2, m3, m4;
 bool hide = false;
 
 public void OnPluginInit()
@@ -16,10 +16,11 @@ public void OnPluginInit()
 	Command("^say /m", MenuTest);
 	Command("^say /m2", MenuTest2);
 	Command("^say /m3", MenuTest5);
+	Command("^say /m4", MenuTest6);
 	Command("^say /cm", MenuTest3);
 	Command("^say /h", MenuTest4);
 
-	m = Menu(TestHandler, true);
+	m = Menu(TestHandler, MenuItemStyle, true);
 	m.SetTitle("Title");
 	m.AddItem("one");
 	m.AddItem("two");
@@ -33,22 +34,26 @@ public void OnPluginInit()
 	m.AddItem("10");
 	m.AddItem("11");
 	
-	m2 = Menu(TestHandler, true);
+	m2 = Menu(TestHandler, MenuItemStyle, true);
 	
 	m2.SetTitle("Test 2");
-	m2.AddItem("one", 1, ItemHandler3);
-	m2.AddItem("two", 2, ItemHandler3);
-	m2.AddItem("three", 3, ItemHandler3);
+	m2.AddItem("one", 1);
+	m2.AddItem("two", 2);
+	m2.AddItem("three", 3);
 	m2.AddItem("four", 4);
 	m2.AddItem("5", 5, ItemHandler3);
 	m2.AddItem("6", 6, ItemHandler3);
 	m2.AddItem("7", 7, ItemHandler3);
-	m2.AddItem("8", 9);
+	m2.AddItem("8", 9, ItemHandler3);
 	m2.AddItem("9", 10);
+	m2.AddItem("10", 10);
+	m2.AddItem("11", 10);
+	m2.AddItem("12", 10);
 
 	m2.SetProp(MProp_NumberFormat, "\\r[#num]");
+	m2.ItemsPerPage = 4;
 
-	m3 = Menu(TestHandler, true);
+	m3 = Menu(TestHandler, MenuItemStyle, true);
 	
 	m3.SetTitle("Test 3");
 	m3.AddItem("one");
@@ -63,6 +68,12 @@ public void OnPluginInit()
 	m3.AddStaticItem(5, "static2", 23, ItemHandler2);
 
 	m3.ItemsPerPage = 5;
+
+	m4 = Menu(TestHandler2, MenuTextStyle);
+
+	char text[] = "Title\n\n1. One\n2. Two\n\n3. Exit";
+	m4.SetText(text);
+	m4.SetKeys((1<<0)|(1<<1)|(1<<2));
 } 
 
 public ItemStatus ItemHandler(Menu menu, MenuItem item, int player)
@@ -98,6 +109,10 @@ public PluginReturn MenuTest5(int client, Command cid)
 {
 	m3.Display(client);
 }
+public PluginReturn MenuTest6(int client, Command cid)
+{
+	m4.Display(client);
+}
 
 public PluginReturn MenuTest3(int client, Command cid)
 {
@@ -112,5 +127,10 @@ public PluginReturn MenuTest4(int client, Command cid)
 public int TestHandler(Menu menu, MenuItem item, int player)
 {
 	PrintToServer("menu %d, item %d, item data %d, player %d", menu, item, item.GetData(), player);
+	return 0;
+}
+public int TestHandler2(Menu menu, int key, int player)
+{
+	PrintToServer("menu %d, key %d, player %d", menu, key, player);
 	return 0;
 }

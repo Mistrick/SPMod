@@ -21,12 +21,12 @@
 static cell_t MenuCreate(SourcePawn::IPluginContext *ctx,
                          const cell_t *params)
 {
-    enum { arg_handler = 1, arg_global };
+    enum { arg_handler = 1, arg_style, arg_global };
     
     const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
 
     std::shared_ptr<Menu> pMenu;
-    pMenu = menuManager->registerMenuCore(ctx->GetFunctionById(params[arg_handler]), params[arg_global]);
+    pMenu = menuManager->registerMenuCore(ctx->GetFunctionById(params[arg_handler]), static_cast<MenuStyle>(params[arg_style]), params[arg_global]);
 
     if (!pMenu)
         return -1;
@@ -52,7 +52,13 @@ static cell_t MenuSetTitle(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -82,7 +88,13 @@ static cell_t MenuAddItem(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -112,7 +124,13 @@ static cell_t MenuAddStaticItem(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -142,7 +160,13 @@ static cell_t MenuInsertItem(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -172,7 +196,13 @@ static cell_t MenuRemoveItem(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -199,7 +229,13 @@ static cell_t MenuRemoveAllItems(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -226,7 +262,7 @@ static cell_t MenuDisplay(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
         return 0;
     }
 
@@ -253,7 +289,13 @@ static cell_t MenuDestroy(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -280,7 +322,13 @@ static cell_t MenuItemsGet(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -305,7 +353,13 @@ static cell_t MenuItemsPerPageSet(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -332,7 +386,13 @@ static cell_t MenuItemsPerPageGet(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -362,7 +422,13 @@ static cell_t MenuSetProp(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -377,6 +443,75 @@ static cell_t MenuSetProp(SourcePawn::IPluginContext *ctx,
     default:
         break;
     }
+
+    return 1;
+}
+
+// native void Menu.SetText(const char text[]);
+static cell_t MenuSetText(SourcePawn::IPluginContext *ctx,
+                           const cell_t *params)
+{
+    enum { arg_index = 1, arg_text };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() != MenuTextStyle)
+    {
+        ctx->ReportError("ItemStyle menu can't use this native!");
+        return 0;
+    }
+
+    char *text;
+    ctx->LocalToString(params[arg_text], &text);
+
+    pMenu->setText(text);
+
+    return 1;
+}
+
+// native void Menu.SetKeys(int keys);
+static cell_t MenuSetKeys(SourcePawn::IPluginContext *ctx,
+                           const cell_t *params)
+{
+    enum { arg_index = 1, arg_keys };
+    
+    cell_t menuId = params[arg_index];
+    if (menuId  < 0)
+    {
+        ctx->ReportError("Invalid menu index!");
+        return 0;
+    }
+
+    const std::unique_ptr<MenuManager> &menuManager = gSPGlobal->getMenuManagerCore();
+    std::shared_ptr<Menu> pMenu = menuManager->findMenuCore(menuId);
+
+    if(!pMenu)
+    {
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() != MenuTextStyle)
+    {
+        ctx->ReportError("ItemStyle menu can't use this native!");
+        return 0;
+    }
+
+    pMenu->setKeys(params[arg_keys]);
 
     return 1;
 }
@@ -430,7 +565,13 @@ static cell_t MenuItemSetName(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -469,7 +610,13 @@ static cell_t MenuItemGetName(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -520,7 +667,13 @@ static cell_t MenuItemSetData(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -555,7 +708,13 @@ static cell_t MenuItemGetData(SourcePawn::IPluginContext *ctx,
 
     if(!pMenu)
     {
-        ctx->ReportError("Menu not found!");
+        ctx->ReportError("Menu(%d) not found!", menuId);
+        return 0;
+    }
+
+    if(pMenu->getStyle() == MenuTextStyle)
+    {
+        ctx->ReportError("TextStyle menu can't use this native!");
         return 0;
     }
 
@@ -565,6 +724,7 @@ static cell_t MenuItemGetData(SourcePawn::IPluginContext *ctx,
 sp_nativeinfo_t gMenuNatives[] =
 {
     {   "Menu.Menu",                MenuCreate              },
+    
     {   "Menu.SetTitle",            MenuSetTitle            },
     {   "Menu.AddItem",             MenuAddItem             },
     {   "Menu.AddStaticItem",       MenuAddStaticItem       },
@@ -577,6 +737,9 @@ sp_nativeinfo_t gMenuNatives[] =
     {   "Menu.Items.get",           MenuItemsGet            },
     {   "Menu.ItemsPerPage.set",    MenuItemsPerPageSet     },
     {   "Menu.ItemsPerPage.get",    MenuItemsPerPageGet     },
+
+    {   "Menu.SetText",             MenuSetText             },
+    {   "Menu.SetKeys",             MenuSetKeys             },
 
     {   "CloseMenu",                MenuClose               },
 

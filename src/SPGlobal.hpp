@@ -34,7 +34,7 @@ public:
     #endif
 
     SPGlobal() = delete;
-    SPGlobal(fs::path &&dllDir);
+    explicit SPGlobal(fs::path &&dllDir);
     ~SPGlobal()
     {
         #ifdef SP_POSIX
@@ -45,6 +45,15 @@ public:
     }
 
     // ISPGlobal
+    const char *getHome() const override;
+    const char *getModName() const override;
+    IPluginMngr *getPluginManager() const override;
+    IForwardMngr *getForwardManager() const override;
+    ICvarMngr *getCvarManager() const override;
+    SourcePawn::ISourcePawnEnvironment *getSPEnvironment() const override;
+    INativeMngr *getNativeManager() const override;
+    ITimerMngr *getTimerManager() const override;
+    IUtils *getUtils() const override;
 
     /**
      * @brief Returns home dir of SPMod.
@@ -148,38 +157,38 @@ public:
      * @return                Number of characters written.
      */
     unsigned int formatString(char *buffer,
-                              size_t length,
+                              std::size_t length,
                               const char *format,
                               SourcePawn::IPluginContext *ctx,
                               const cell_t *params,
-                              size_t param) const override;
+                              std::size_t param) const override;
 
     // SPGlobal
-    const std::unique_ptr<PluginMngr> &getPluginManagerCore() const
+    const auto &getPluginManagerCore() const
     {
         return m_pluginManager;
     }
-    const std::unique_ptr<ForwardMngr> &getForwardManagerCore() const
+    const auto &getForwardManagerCore() const
     {
         return m_forwardManager;
     }
-    const std::unique_ptr<CvarMngr> &getCvarManagerCore() const
+    const auto &getCvarManagerCore() const
     {
         return m_cvarManager;
     }
-    const std::unique_ptr<Logger> &getLoggerCore() const
+    const auto &getLoggerCore() const
     {
         return m_loggingSystem;
     }
-    const std::unique_ptr<NativeMngr> &getNativeManagerCore() const
+    const auto &getNativeManagerCore() const
     {
         return m_nativeManager;
     }
-    const std::unique_ptr<CommandMngr> &getCommandManagerCore() const
+    const auto &getCommandManagerCore() const
     {
         return m_cmdManager;
     }
-    const std::unique_ptr<TimerMngr> &getTimerManagerCore() const
+    const auto &getTimerManagerCore() const
     {
         return m_timerManager;
     }
@@ -188,14 +197,19 @@ public:
         return m_menuManager;
     }
     const auto &getScriptsDirCore()
+    const auto &getUtilsCore() const
+    {
+        return m_utils;
+    }
+    const auto &getScriptsDirCore() const
     {
         return m_SPModScriptsDir;
     }
-    const auto &getLogsDirCore()
+    const auto &getLogsDirCore() const
     {
         return m_SPModLogsDir;
     }
-    const auto &getDllsDirCore()
+    const auto &getDllsDirCore() const
     {
         return m_SPModDllsDir;
     }
@@ -219,6 +233,7 @@ private:
     std::unique_ptr<CommandMngr> m_cmdManager;
     std::unique_ptr<TimerMngr> m_timerManager;
     std::unique_ptr<MenuManager> m_menuManager;
+    std::unique_ptr<Utils> m_utils;
     std::string m_modName;
     SourcePawn::ISourcePawnFactory *m_spFactory;
 

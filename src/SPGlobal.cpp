@@ -28,6 +28,7 @@ SPGlobal::SPGlobal(fs::path &&dllDir) : m_SPModDir(dllDir.parent_path().parent_p
                                         m_cmdManager(std::make_unique<CommandMngr>()),
                                         m_timerManager(std::make_unique<TimerMngr>()),
                                         m_menuManager(std::make_unique<MenuManager>()),
+                                        m_utils(std::make_unique<Utils>()),
                                         m_modName(GET_GAME_INFO(PLID, GINFO_NAME)),
                                         m_spFactory(nullptr)
 {
@@ -116,4 +117,49 @@ void SPGlobal::_initSourcePawn()
     m_spFactory = SPFactory;
     m_spFactory->NewEnvironment();
     getSPEnvironment()->APIv2()->SetJitEnabled(true);
+}
+
+const char *SPGlobal::getHome() const
+{
+    return m_SPModDir.string().c_str();
+}
+
+const char *SPGlobal::getModName() const
+{
+    return m_modName.c_str();
+}
+
+IPluginMngr *SPGlobal::getPluginManager() const
+{
+    return m_pluginManager.get();
+}
+
+IForwardMngr *SPGlobal::getForwardManager() const
+{
+    return m_forwardManager.get();
+}
+
+ICvarMngr *SPGlobal::getCvarManager() const
+{
+    return m_cvarManager.get();
+}
+
+SourcePawn::ISourcePawnEnvironment *SPGlobal::getSPEnvironment() const
+{
+    return m_spFactory->CurrentEnvironment();
+}
+
+INativeMngr *SPGlobal::getNativeManager() const
+{
+    return m_nativeManager.get();
+}
+
+ITimerMngr *SPGlobal::getTimerManager() const
+{
+    return m_timerManager.get();
+}
+
+IUtils *SPGlobal::getUtils() const
+{
+    return m_utils.get();
 }

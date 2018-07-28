@@ -29,6 +29,7 @@ sourceFiles = files('CoreNatives.cpp',
                     'MenuSystem.cpp',
                     'SrvCommand.cpp',
                     'PrintfImpl.cpp',
-                    'ValveInterface.cpp')
+                    'ValveInterface.cpp',
+                    'UtilsSystem.cpp')
 
 shared_library('spmod_mm', sourceFiles, include_directories : includeDirs)

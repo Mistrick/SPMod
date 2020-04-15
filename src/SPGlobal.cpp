@@ -26,9 +26,10 @@ SPGlobal::SPGlobal(fs::path &&dllDir)
       m_cvarManager(std::make_unique<CvarMngr>()), m_loggingSystem(std::make_unique<LoggerMngr>()),
       m_cmdManager(std::make_unique<CommandMngr>()), m_timerManager(std::make_unique<TimerMngr>()),
       m_menuManager(std::make_unique<MenuMngr>()), m_plrManager(std::make_unique<PlayerMngr>()),
-      m_nativeProxy(std::make_unique<NativeProxy>()), m_engineFuncs(std::make_unique<EngineFuncs>()),
-      m_engineFuncsHooked(std::make_unique<EngineFuncsHooked>()), m_engineGlobals(std::make_unique<EngineGlobals>()),
-      m_utils(std::make_unique<Utils>()), m_modName(GET_GAME_INFO(PLID, GINFO_NAME))
+      m_messageManager(std::make_unique<MessageMngr>()), m_nativeProxy(std::make_unique<NativeProxy>()),
+      m_engineFuncs(std::make_unique<EngineFuncs>()), m_engineFuncsHooked(std::make_unique<EngineFuncsHooked>()),
+      m_engineGlobals(std::make_unique<EngineGlobals>()), m_utils(std::make_unique<Utils>()),
+      m_modName(GET_GAME_INFO(PLID, GINFO_NAME))
 {
     // Sets default dirs
     setPath(DirType::Plugins, "plugins");
@@ -228,6 +229,11 @@ LoggerMngr *SPGlobal::getLoggerManager() const
 PlayerMngr *SPGlobal::getPlayerManager() const
 {
     return m_plrManager.get();
+}
+
+MessageMngr *SPGlobal::getMessageManager() const
+{
+    return m_messageManager.get();
 }
 
 CommandMngr *SPGlobal::getCommandManager() const
